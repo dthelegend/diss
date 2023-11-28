@@ -112,6 +112,6 @@ This project carries a broad external applicability, with potential implications
 
 // #pagebreak()
 
-// = Bibliography
+= Bibliography
 
 // #bibliography("proposal.bib")

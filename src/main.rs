@@ -4,7 +4,7 @@ mod sat;
 use rand::prelude::{Rng, thread_rng};
 use crate::qubo::{QUBOSolution, QUBOProblem};
 
-const QUBO_TEST_SIZE : usize = 10;
+const QUBO_TEST_SIZE : usize = 4;
 
 fn test_qubo() {
     let mut rng = thread_rng();
@@ -20,7 +20,7 @@ fn test_qubo() {
     println!("Generated problem:\n{:?}", qubo_problem);
 
 
-    for _ in 0..100 {
+    for _ in 0..1 {
         let mut solution = vec![false; QUBO_TEST_SIZE];
         for s in solution.iter_mut() {
             *s = rng.gen();

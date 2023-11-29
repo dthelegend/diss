@@ -3,26 +3,10 @@ mod problem;
 mod error;
 
 use std::{io::{self}, fs::File, path::PathBuf};
-use rand::prelude::{Rng, thread_rng};
 use clap::Parser;
-use problem::{Problem, sat::{KSatProblem, KSatSolution}};
+use problem::{Problem, sat::KSatProblem, reductions::SatToQuboReduction};
 
-fn test_sat(problem: &KSatProblem) {
-    let mut rng = thread_rng();
-
-    for _ in 0..100 {
-        let mut solution = vec![false; problem.0];
-        for s in solution.iter_mut() {
-            *s = rng.gen();
-        }
-        
-        let sat_solution = KSatSolution::Sat(solution);
-
-        let x = problem.validate_solution(&sat_solution);
-
-        println!("Evaluation for solution {:?} is {}", sat_solution, x)
-    }
-}
+use crate::problem::ReducibleProblem;
 
 #[derive(Parser)]
 struct SolverCli {
@@ -30,7 +14,7 @@ struct SolverCli {
     file: Option<PathBuf>
 }
 
-fn main() {
+fn main() -> Result<(), error::Error> {
     let args = SolverCli::parse();
 
     let file: Box<dyn io::Read> = match args.file {
@@ -40,9 +24,19 @@ fn main() {
 
     let buf_reader = io::BufReader::new(file);
 
-    let problem = KSatProblem::from_benchmark_file(buf_reader).unwrap();
+    let problem = KSatProblem::from_benchmark_file(buf_reader)?;
 
     println!("{:?}", problem);
     
-    test_sat(&problem);
+    // test_sat(&problem);
+    let solution = problem.solve_with_reduction(SatToQuboReduction::Choi);
+
+    if problem.validate_solution(&solution) {
+        println!("Found valid solution {:?}", solution);
+    }
+    else {
+        println!("Found invalid solution {:?}", solution);
+    }
+
+    Ok(())
 }

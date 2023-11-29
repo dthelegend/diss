@@ -1,5 +1,6 @@
 pub mod sat;
 pub mod qubo;
+pub mod reductions;
 
 pub trait Problem<SolutionType, EvaluationType> {
     fn solve(&self) -> SolutionType;

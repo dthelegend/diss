@@ -4,7 +4,16 @@ use crate::matrix;
 use super::Problem;
 
 #[derive(Debug)]
-pub struct QuboProblem(matrix::SparseMatrix<i32>);
+pub enum QuboProblemBackend {
+    Parallel,
+    Sequential
+}
+
+#[derive(Debug)]
+pub struct QuboProblem {
+    problem_matrix: matrix::SparseMatrix<i32>,
+    problem_backend: QuboProblemBackend
+}
 
 pub struct QuboSolution(pub Vec<bool>);
 
@@ -16,7 +25,7 @@ impl Problem<QuboSolution, i32> for QuboProblem {
         let mut x_q = vec![0; solution_vector.len()];
 
         // Vector multiply Sparse matrix
-        for &matrix::SparseMatrixElement { row, column, value } in self.0.values() {
+        for &matrix::SparseMatrixElement { row, column, value } in self.problem_matrix.values() {
             x_q[column] += value * (if solution_vector[row] { 1 } else { 0 });
         }
 
@@ -25,13 +34,20 @@ impl Problem<QuboSolution, i32> for QuboProblem {
     }
 
     fn solve(&self) -> QuboSolution {
-        todo!()
+        match self.problem_backend {
+            QuboProblemBackend::Parallel => todo!(),
+            QuboProblemBackend::Sequential => todo!(),
+        }
     }
 }
 
 impl QuboProblem {
     pub fn new(size: usize) -> Self {
-        QuboProblem(matrix::SparseMatrix::new((size, size)))
+        Self::new_with_backend(size, QuboProblemBackend::Sequential)
+    }
+
+    pub fn new_with_backend(size: usize, backend: QuboProblemBackend) -> Self {
+        QuboProblem { problem_matrix: matrix::SparseMatrix::new((size, size)), problem_backend: backend }
     }
 
     fn adjust_index(index: (usize, usize)) -> (usize, usize) {
@@ -45,7 +61,7 @@ impl QuboProblem {
     }
 
     pub fn get_size(&self) -> usize {
-        let QuboProblem(problem_matrix) = self;
+        let QuboProblem { problem_matrix, .. } = self;
         let (x, y) = problem_matrix.shape;
         
         assert!(x == y, "Problem is not square!");
@@ -57,7 +73,7 @@ impl QuboProblem {
 // QUBO Indexing
 impl IndexMut<(usize, usize)> for QuboProblem {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
-        &mut self.0[Self::adjust_index(index)]
+        &mut self.problem_matrix[Self::adjust_index(index)]
     }
 }
 
@@ -65,7 +81,7 @@ impl Index<(usize, usize)> for QuboProblem {
     type Output = i32;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
-        &self.0[Self::adjust_index(index)]
+        &self.problem_matrix[Self::adjust_index(index)]
     }
 }
 

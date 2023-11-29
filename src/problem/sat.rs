@@ -74,7 +74,7 @@ impl KSatProblem {
 
 impl Problem<KSatSolution, bool> for KSatProblem {
     fn solve(&self) -> KSatSolution {
-        todo!()
+        unimplemented!()
     }
 
     fn validate_solution(&self, solution: &KSatSolution) -> bool {

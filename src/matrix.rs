@@ -98,7 +98,7 @@ where T: Sized + Copy {
 impl <T> Debug for SparseMatrix<T>
 where T: Sized + Copy + Debug {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "SparseMatrix {:?}\n", self.shape)?;
+        writeln!(f, "SparseMatrix {:?}", self.shape)?;
 
         for i in 0..self.shape.0 {
             for j in 0..self.shape.1 {
@@ -106,7 +106,7 @@ where T: Sized + Copy + Debug {
 
                 write!(f, "{:?}\t", value)?;
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
 
         Ok(())

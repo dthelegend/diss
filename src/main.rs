@@ -28,7 +28,7 @@ fn main() -> Result<(), error::Error> {
 
     println!("{:?}", problem);
     
-    // test_sat(&problem);
+    // let solution = problem.solve();
     let solution = problem.solve_with_reduction(SatToQuboReduction::Choi);
 
     if problem.validate_solution(&solution) {

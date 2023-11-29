@@ -2,77 +2,17 @@ use std::fmt::Debug;
 use std::io;
 use std::num;
 use regex::Regex;
-use crate::reducers::Reducer;
+use super::Problem;
+use crate::error::{Error, ErrorKind};
 
-#[derive(Debug)]
-pub struct Error {
-    pub kind: ErrorKind
-}
-
-impl Error {
-    pub fn kind(&self) -> &ErrorKind {
-        &self.kind
-    }
-}
-
-pub enum ErrorKind {
-    IO(io::ErrorKind),
-    ParseError(num::IntErrorKind),
-    ClauseError,
-    HeaderError,
-}
-
-impl Debug for ErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::IO(arg0) => f.debug_tuple("IO").field(arg0).finish(),
-            Self::ParseError(arg0) => f.debug_tuple("ParseError").field(arg0).finish(),
-            Self::ClauseError => write!(f, "ClauseError"),
-            Self::HeaderError => write!(f, "HeaderError"),
-        }
-    }
-}
-
-// Whether the variable is negated and Index of the variable in the solution
-pub struct KSatVariable(pub bool, pub usize);
-
-impl Debug for KSatVariable {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "KSatVariable {}{}", if self.0 {""} else {"¬"}, self.1)
-    }
-}
-
-pub enum KSATSolution {
+pub enum KSatSolution {
     Sat(Vec<bool>),
     Unsat
 }
 
-impl Debug for KSATSolution {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Sat(arg0) => write!(f, "Sat {}", arg0.iter().enumerate().map(|(i, x)| format!("{}{}", if *x {""} else {"¬"}, i)).collect::<Vec<String>>().join(" ")),
-            Self::Unsat => write!(f, "Unsat"),
-        }
-    }
-}
-
 // Conjunctive normal form KSAT Problem with N Variables
+pub struct KSatVariable(pub bool, pub usize);
 pub struct KSatProblem(pub usize, Vec<Vec<KSatVariable>>);
-
-impl Debug for KSatProblem {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let x = self.1.iter()
-            .map(|clause|
-                format!("({})", clause.iter()
-                    .map(|KSatVariable(is_pos, number)|
-                        format!("{}{}", if *is_pos {""} else {"¬"}, number))
-                    .collect::<Vec<String>>()
-                    .join(" + ")))
-            .collect::<Vec<String>>()
-            .join(" . ");
-        write!(f, "KSatProblem {}", x)
-    }
-}
 
 impl KSatProblem {
     pub fn from_benchmark_file(file: impl io::BufRead) -> Result<Self, Error> {
@@ -130,10 +70,16 @@ impl KSatProblem {
 
         Ok(KSatProblem(nbvar, clauses))
     }
+}
 
-    pub fn validate_solution(&self, solution: &KSATSolution) -> bool {
+impl Problem<KSatSolution, bool> for KSatProblem {
+    fn solve(&self) -> KSatSolution {
+        todo!()
+    }
+
+    fn validate_solution(&self, solution: &KSatSolution) -> bool {
         let KSatProblem(nbvars, clauses) = &self;
-        let KSATSolution::Sat(solution_vector) = solution else {
+        let KSatSolution::Sat(solution_vector) = solution else {
             return false;
         };
 
@@ -147,16 +93,36 @@ impl KSatProblem {
             })
         })
     }
+}
 
-    pub fn reduce<T>(self, reducer: impl Reducer<Self, T>) -> T {
-        reducer.convert(self)
-    }
+// DEBUG
 
-    pub fn find_solution(&self, backend: &dyn KSATSolutionBackend) -> KSATSolution {
-        backend.find_solution(self)
+impl Debug for KSatProblem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let x = self.1.iter()
+            .map(|clause|
+                format!("({})", clause.iter()
+                    .map(|KSatVariable(is_pos, number)|
+                        format!("{}{}", if *is_pos {""} else {"¬"}, number))
+                    .collect::<Vec<String>>()
+                    .join(" + ")))
+            .collect::<Vec<String>>()
+            .join(" . ");
+        write!(f, "KSatProblem {}", x)
     }
 }
 
-pub trait KSATSolutionBackend {
-    fn find_solution(&self, solution: &KSatProblem) -> KSATSolution;
+impl Debug for KSatVariable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "KSatVariable {}{}", if self.0 {""} else {"¬"}, self.1)
+    }
+}
+
+impl Debug for KSatSolution {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Sat(arg0) => write!(f, "Sat {}", arg0.iter().enumerate().map(|(i, x)| format!("{}{}", if *x {""} else {"¬"}, i)).collect::<Vec<String>>().join(" ")),
+            Self::Unsat => write!(f, "Unsat"),
+        }
+    }
 }

@@ -114,36 +114,30 @@ where T: Sized + Copy + Debug {
 }
 
 #[derive(Debug)]
-pub struct QUBOProblem{
-    problem_matrix: SparseMatrix<i32>
-}
+pub struct QUBOProblem(SparseMatrix<i32>);
 
-pub struct QUBOSolution {
-    solution_vector: Vec<bool>
-}
+pub struct QUBOSolution(Vec<bool>);
 
 impl Debug for QUBOSolution {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "QUBOSolution ")?;
-        f.debug_list().entries(self.solution_vector.iter().map(|x| if *x { 1 } else { 0 })).finish()
+        f.debug_list().entries(self.0.iter().map(|x| if *x { 1 } else { 0 })).finish()
     }
 }
 
 impl From<Vec<bool>> for QUBOSolution {
     fn from(value: Vec<bool>) -> Self {
-        QUBOSolution { solution_vector: value }
+        QUBOSolution(value)
     }
 }
 
-pub trait QUBOBackend {
+pub trait QUBOSolutionBackend {
     fn find_min_solution(&self, problem: &QUBOProblem) -> QUBOSolution;
 }
 
 impl QUBOProblem {
     pub fn new(size: usize) -> Self {
-        QUBOProblem {
-            problem_matrix: SparseMatrix::new((size, size))
-        }
+        QUBOProblem(SparseMatrix::new((size, size)))
     }
 
     fn adjust_index(index: (usize, usize)) -> (usize, usize) {
@@ -157,7 +151,7 @@ impl QUBOProblem {
     }
 
     pub fn get_size(&self) -> usize {
-        let QUBOProblem{ problem_matrix } = self;
+        let QUBOProblem(problem_matrix) = self;
         let (x, y) = problem_matrix.shape;
         
         assert!(x == y, "Problem is not square!");
@@ -166,13 +160,13 @@ impl QUBOProblem {
     }
 
     pub fn evaluate_solution(&self, solution: &QUBOSolution) -> i32 {
-        let QUBOSolution { solution_vector } = solution;
+        let QUBOSolution(solution_vector) = solution;
         assert!(solution_vector.len() == self.get_size());
 
         let mut x_q = vec![0; solution_vector.len()];
 
         // Vector multiply Sparse matrix
-        for &SparseMatrixElement { row, column, value } in self.problem_matrix.values() {
+        for &SparseMatrixElement { row, column, value } in self.0.values() {
             x_q[column] += value * (if solution_vector[row] { 1 } else { 0 });
         }
 
@@ -180,14 +174,14 @@ impl QUBOProblem {
         zip(x_q, solution_vector).map(|(a, b)| a * (if *b { 1 } else { 0 })).sum()
     }
 
-    pub fn find_min_solution(&self, backend: &dyn QUBOBackend) -> QUBOSolution {
+    pub fn find_min_solution(&self, backend: &dyn QUBOSolutionBackend) -> QUBOSolution {
         backend.find_min_solution(&self)
     }
 }
 
 impl IndexMut<(usize, usize)> for QUBOProblem {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
-        &mut self.problem_matrix[Self::adjust_index(index)]
+        &mut self.0[Self::adjust_index(index)]
     }
 }
 
@@ -195,6 +189,6 @@ impl Index<(usize, usize)> for QUBOProblem {
     type Output = i32;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
-        &self.problem_matrix[Self::adjust_index(index)]
+        &self.0[Self::adjust_index(index)]
     }
 }

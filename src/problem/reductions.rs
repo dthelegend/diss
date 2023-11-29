@@ -1,5 +1,6 @@
 use super::{ReducibleProblem, qubo::{QuboSolution, QuboProblem}, sat::{KSatProblem, KSatSolution}};
 
+#[derive(Clone, Copy)]
 pub enum SatToQuboReduction {
     Choi,
     Chancellor,
@@ -14,7 +15,10 @@ impl ReducibleProblem<SatToQuboReduction, KSatSolution, bool, QuboSolution, i32>
         }
     }
 
-    fn convert_solution(&self, solution : QuboSolution) -> KSatSolution {
-        todo!()
+    fn convert_solution(&self, reduction: SatToQuboReduction, solution : QuboSolution) -> KSatSolution {
+        match reduction {
+            SatToQuboReduction::Choi => todo!(),
+            SatToQuboReduction::Chancellor => todo!(),
+        }
     }
 }

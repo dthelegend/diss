@@ -31,12 +31,11 @@ fn main() -> Result<(), error::Error> {
     // let solution = problem.solve();
     let solution = problem.solve_with_reduction(SatToQuboReduction::Choi);
 
-    if problem.validate_solution(&solution) {
-        println!("Found valid solution {:?}", solution);
+    if !problem.validate_solution(&solution) {
+        panic!("Found invalid solution {:?}", solution);
     }
-    else {
-        println!("Found invalid solution {:?}", solution);
-    }
+    
+    println!("{}", solution);
 
     Ok(())
 }

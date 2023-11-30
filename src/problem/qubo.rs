@@ -5,8 +5,12 @@ use super::Problem;
 
 #[derive(Debug)]
 pub enum QuboProblemBackend {
-    Parallel,
-    Sequential
+    ParallelExhaustiveSearch,
+    MopsoParallel,
+    MomentumAnnealing,
+    SimulatedQuantumAnnealing,
+    DiverseAdaptiveBulkSearch,
+    SimulatedAnnealing
 }
 
 #[derive(Debug)]
@@ -35,15 +39,19 @@ impl Problem<QuboSolution, i32> for QuboProblem {
 
     fn solve(&self) -> QuboSolution {
         match self.problem_backend {
-            QuboProblemBackend::Parallel => todo!(),
-            QuboProblemBackend::Sequential => todo!(),
+            QuboProblemBackend::ParallelExhaustiveSearch => todo!(),
+            QuboProblemBackend::MopsoParallel => todo!(),
+            QuboProblemBackend::MomentumAnnealing => todo!(),
+            QuboProblemBackend::SimulatedQuantumAnnealing => todo!(),
+            QuboProblemBackend::DiverseAdaptiveBulkSearch => todo!(),
+            QuboProblemBackend::SimulatedAnnealing => todo!(),
         }
     }
 }
 
 impl QuboProblem {
     pub fn new(size: usize) -> Self {
-        Self::new_with_backend(size, QuboProblemBackend::Sequential)
+        Self::new_with_backend(size, QuboProblemBackend::SimulatedAnnealing)
     }
 
     pub fn new_with_backend(size: usize, backend: QuboProblemBackend) -> Self {

@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::fmt::Display;
 use std::io;
 use std::num;
 use regex::Regex;
@@ -7,7 +8,8 @@ use crate::error::{Error, ErrorKind};
 
 pub enum KSatSolution {
     Sat(Vec<bool>),
-    Unsat
+    Unsat,
+    Unknown
 }
 
 // Conjunctive normal form KSAT Problem with N Variables
@@ -123,6 +125,17 @@ impl Debug for KSatSolution {
         match self {
             Self::Sat(arg0) => write!(f, "Sat {}", arg0.iter().enumerate().map(|(i, x)| format!("{}{}", if *x {""} else {"¬"}, i)).collect::<Vec<String>>().join(" ")),
             Self::Unsat => write!(f, "Unsat"),
+            Self::Unknown => write!(f, "Unknown"),
+        }
+    }
+}
+
+impl Display for KSatSolution {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Sat(_) => write!(f, "SATISFIABLE"),
+            Self::Unsat => write!(f, "UNSATISFIABLE"),
+            Self::Unknown => write!(f, "UNKNOWN"),
         }
     }
 }

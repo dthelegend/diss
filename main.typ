@@ -1,4 +1,4 @@
-#let title = [Enhancing Max-SAT Solvers through QUBO Reduction]
+#let title = [Solving Boolean Satisfiability in Parallel using a QUBO Reduction]
 
 #set text(
   font: "BlexSerif Nerd Font",
@@ -33,9 +33,9 @@
   leading: 0.52em,
 )
 
-= Background and Motivation
+= Introduction
 
-In the ever-evolving landscape of computing, both parallel computing and quantum computing hold significant promise, albeit in markedly distinct ways.
+The boolean Satisfiability problem is a well studied NP-Hard decision problem solvers
 
 == Parallel & Quantum Computing
 
@@ -55,17 +55,132 @@ The Maximum Satisfiability (Max-SAT) problem, an NP-Hard Optimization problem si
 
 The main output of this project is a fully featured Max-SAT solver that employs a reduction from Max-SAT to QUBO as a means to enable the simple parallelisation. Leveraging the substantial body of research surrounding QUBO, this approach aims to not only to create a parallel Max-SAT solver, but also compare this approach with existing apporaches, including classical, parallel, quantum apporaches.
 
-= Aims and Objectives
+== Aims and Objectives
 
 The aim of this project is to produce a parallel and quantum-capable Max-SAT solver.
 - Investigating existing solutions for a suitable reduction from Max-SAT to QUBO and developing a Max-SAT to QUBO reduction with a complexity that allows the parallel algorithm to maintain it's time complexity.
 - Implementing and optimising an algorithm for solving QUBO in parallel based on the large body of existing work.
-- Test and evaluate the performance of the resulting parallel Max-SAT solver, using the #underline(link("https://maxsat-evaluations.github.io/")[Max-SAT Evaluations set])
+- Test and evaluate the performance of the resulting parallel Max-SAT solver, using the #underline(link("https://satcompetition.github.io/")[Max-SAT Evaluations set])
 - Conduct an in-depth comparative evaluation of the efficacy of the solver in comparison to existing approaches, including other parallel algorithms and quantum computing approaches.
 
-= External Aspect
+== External Aspect
 
 This project carries a broad external applicability, with potential implications for a diverse range of stakeholders. The ability to efficiently parallelize Max-SAT solvers, extends its relevance beyond the research realm. It may find utility among industries grappling with complex optimization challenges, such as logistics and supply chain management, where the rapid and parallel resolution of Max-SAT problems is critical. Moreover, the project could draw interest from fields beyond computer science, including operations research and engineering.
+
+= Motivation
+
+= Related Work
+
+= Description of the work
+
+= Methodology
+
+= Design
+
+The solver is designed to be flexible and allow for the implementation of many alternative backends allowing for different reduction and solving algorithms to easily be compared to one another. The general flow for solvving a problem is shown below.
+
+// TODO: Image of solver pipeline
+
+Input from the user is Processed into the SAT Problem instance. The SAT Problem is then reduced into a QUBO problem using one of the specified algorithms. We can then solve the reduced QUBO problem with another specified algorithm. Once we have a solution, we present it to the user.
+
+== Reduction Algorithms
+
+The plan is for the solver to implements 5 reduction algorithms:
+// TODO: Update with the implemnted reductions
+- *Choi* @choi_different_2011 which uses a reduction from K-SAT to 3-SAT to MIS then finally QUBO
+- A novel method which reduces K-SAT to Max-2-SAT and then to QUBO
+- *Chancellor* @chancellor_direct_2016 which directly encodes problems in a Hamiltonian function that defines the QUBO Matrix. This is the current state-of-the-art method, and the resulting QUBO Matrices are notably smaller than that of Choi.
+- *Nusslein 2022* @nuslein_algorithmic_2022 is similar to Chancellor, but is supposed to scale better for QUBO formulations where the resulting QUBO graph has a number of edges that is sub-quadratic i.e. $|E| = Theta(|V|)$
+- *Nusslein 2023* @nuslein_solving_2023 is a preprint which is supposed to produce smaller QUBO matrices than Chancellor with similar characteristics
+
+== QUBO Solving Algorithms
+
+The plan is for the solver to implement 6 QUBO solving algorithms:
+- *Simulated Annealing*
+- *Parallel Exhausive Search* @tao_work-time_2020
+- *MOPSO* @fujimoto_solving_2021
+- *Momentum Annealing* @okuyama_binary_2019
+- *Simulated Quantum Annealing* @volpe_integration_2023
+- *Divers Adaptive Bulk Search* @nakano_diverse_2022
+
+= Implementation
+
+The Solver is written in Rust. Rust was chosen as it has good tools for abstraction of problems and a strong type system that makes it easy to encode problems in. Additionally it has really good tools for concurrency which make coding the parallel sections much easier.
+
+== Input/Output
+
+Following typical SAT solver convention and in-line with the competition requirements, the solver uses the DIMACS Input/Output format for inputing problem instances. Included in this project is a python file `generate_cnf.py` for generating random cnf instances.
+
+== Problem & Solution Encoding
+
+Problems are implemented as Rust traits which makes it easy to implement different problems which can be reduced into one another in definitive ways. There are two specific interfaces for problems. `Problem` which every problem implements, and `ReducibleProblem` which defines how a problem should be reduced into another problem.
+```rust
+pub trait Problem<SolutionType, EvaluationType> {
+    fn solve(&self) -> SolutionType;
+    fn validate_solution(&self, solution: &SolutionType) -> EvaluationType;
+}
+
+pub trait ReducibleProblem<T: Copy, TSolutionType, TEvaluationType, USolutionType, UEvaluationType>: Problem<TSolutionType, TEvaluationType> {
+    fn solve_with_reduction(&self, reduction: T) -> TSolutionType;
+    fn solve(&self) -> TSolutionType;
+    fn reduce(&self, reduction: T) -> Box<dyn Problem<USolutionType, UEvaluationType>>;
+    fn convert_solution(&self, reduction: T, solution : USolutionType) -> TSolutionType;
+}
+```
+This makes it trivial to add new Problems to the solver as intermediary reductions for example the SAT to QUBO Reduction (simplified)
+```rust
+pub enum SatToQuboReduction {
+    Choi,
+    Satellite,
+    Chancellor,
+    Nuesslein2022,
+    Nuesslein2023,
+}
+
+impl ReducibleProblem<...> for KSatProblem {
+    fn reduce(&self, reduction: SatToQuboReduction) -> Box<dyn Problem<QuboSolution, i32>> {
+        // reduce code
+    }
+
+    fn convert_solution(&self, reduction: SatToQuboReduction, solution : QuboSolution) -> KSatSolution {
+        // convert solution code
+    }
+}
+```
+
+The underlying structure of problems can vary a lot, but rust allows us to be flexible with that as long as we implement the traits above. The QUBO problem uses a sparse matrix representation in order to improve memory efficiency. The problem also stores how it should be solved alongside it.
+```rust
+pub enum QuboProblemBackend {
+    ParallelExhaustiveSearch,
+    MopsoParallel,
+    // ...
+}
+// ...
+pub struct QuboProblem {
+    problem_matrix: matrix::SparseMatrix<i32>,
+    problem_backend: QuboProblemBackend
+}
+```
+The SAT problem doesn't implement any solve function as it is tangential to this project. SAT instances are stored as the number of variables and a list of of lists of variables analagous to conjunctive normal form, each variable having whether it is negated (`true` for not negated, `false` for negated) and a which variable number it corresponds to.
+```
+pub struct KSatVariable(pub bool, pub usize);
+pub struct KSatProblem(pub usize, Vec<Vec<KSatVariable>>);
+```
+
+Solutions can be any rust type which makes defining problems very flexible, for example when solving a SAT problem there are 3 possible outcomes, `SAT` or `UNSAT` or `UNKNOWN`, however for QUBO problems, there is only one form of solution which is the list of binary variables.
+```rust
+pub enum KSatSolution {
+    Sat(Vec<bool>),
+    Unsat,
+    Unknown
+}
+// ...
+pub struct QuboSolution(pub Vec<bool>);
+```
+
+== Solving
+
+// TODO: Write something about an implemented solver
 
 #pagebreak()
 
@@ -110,8 +225,6 @@ This project carries a broad external applicability, with potential implications
 - Record and analyze the results.
 - Compile all the research, development, and testing findings into a comprehensive final report.
 
-// #pagebreak()
+#pagebreak()
 
-= Bibliography
-
-// #bibliography("proposal.bib")
+#bibliography("main.bib")

@@ -1,5 +1,7 @@
 use std::{ops::{Index, IndexMut}, iter::zip, fmt::Debug};
+use log::{trace, debug};
 use crate::matrix;
+use rand::{Rng, thread_rng, distributions::{weighted::WeightedIndex, Distribution}};
 
 use super::Problem;
 
@@ -44,7 +46,62 @@ impl Problem<QuboSolution, i32> for QuboProblem {
             QuboProblemBackend::MomentumAnnealing => todo!(),
             QuboProblemBackend::SimulatedQuantumAnnealing => todo!(),
             QuboProblemBackend::DiverseAdaptiveBulkSearch => todo!(),
-            QuboProblemBackend::SimulatedAnnealing => todo!(),
+            QuboProblemBackend::SimulatedAnnealing => {
+                // Could likely be improved with a solution cache, but works well enough for demonstrative purposes
+                const K_MAX: i32 = 1000;
+                fn anneal_helper(problem: &QuboProblem, solution: QuboSolution, k: i32) -> QuboSolution {
+                    debug!("Current solution: {:?}", solution);
+
+                    if k <= 0 {
+                        return solution;
+                    }
+
+                    let temperature: f64 = (f64::from(k)) / f64::from(K_MAX);
+                    trace!("Current Temperature: {}", temperature);
+
+                    let (mut neighbours, evals) : (Vec<_>, Vec<_>) = (0..solution.0.len())
+                        .map(|i| {
+                            let mut vec = solution.0.clone();
+                            vec[i] = !vec[i];
+                            QuboSolution(vec)
+                        })
+                        .map(|x| {
+                            let validate_solution = problem.validate_solution(&x);
+                            (x, validate_solution)
+                        })
+                        .unzip();
+
+                    // Softmaxed weights because I can lol
+                    let min_eval = evals.iter().min()
+                        .expect("Neighbours should never be is empty unless solution is empty, and solution should never be empty!");
+                    let max_eval = evals.iter().max()
+                        .expect("Neighbours should never be is empty unless solution is empty, and solution should never be empty!");
+                    let weights_exp = evals.iter()
+                    .map(|x| {
+                        let norm_x: f64 = -1.0 + 2.0 * f64::from((min_eval - x ) / (min_eval - max_eval));
+                        f64::exp(-norm_x) // minimisation
+                    });
+                    let sum_of_exp: f64 = weights_exp.clone().sum();
+                    let softmaxed_weights = weights_exp.map(|x| x / sum_of_exp);
+                    let dist = WeightedIndex::new(softmaxed_weights)
+                        .expect("Failed to build distribution from softmaxed values");
+
+                    let mut rng = thread_rng();
+                    let chosen_neighbour_number = dist.sample(&mut rng);
+
+                    let chosen_neighbour = if evals[chosen_neighbour_number] < problem.validate_solution(&solution) || rng.gen_bool(temperature) {
+                        neighbours.swap_remove(chosen_neighbour_number)
+                    } else {
+                        solution
+                    };
+
+                    anneal_helper(problem, chosen_neighbour, k-1)
+                }
+
+                let start_solution = QuboSolution((0..self.get_size()).map(|_| thread_rng().gen_bool(0.5)).collect());
+
+                anneal_helper(self, start_solution, K_MAX)
+            },
         }
     }
 }

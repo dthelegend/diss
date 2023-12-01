@@ -6,17 +6,39 @@ pub struct SparseMatrixElement<T: Sized> {
     pub(crate) value: T
 }
 
-pub struct SparseMatrix<T: Sized + Copy> {
+pub struct SparseMatrix<T: Sized + PartialEq> {
     pub(crate) shape: (usize, usize),
     pub(crate) elements: Vec<SparseMatrixElement<T>>,
     pub(crate) default_value: T
 }
 
-impl <T> SparseMatrix<T>
-where T: Sized + Copy {
+impl <T: PartialEq> SparseMatrix<T> {
     /// Creates a new [`SparseMatrix<T>`] with the default value specified.
     pub fn new_with_default(shape: (usize, usize), default: T) -> Self {
         SparseMatrix { shape, elements: Vec::new(), default_value: default }
+    }
+
+    pub fn set(&mut self, index: (usize, usize), value: T) {
+        let (x, y) = index;
+
+        for (i, a) in self.elements.iter_mut().enumerate() {
+            if a.column == x && a.row == y {
+                if a.value == self.default_value {
+                    self.elements.remove(i);
+                } else {
+                    a.value = value;
+                }
+                return;
+            }
+        }
+        
+        let new_element: SparseMatrixElement<T> = SparseMatrixElement::<T> {
+            row: x,
+            column: y,
+            value
+        };
+
+        self.elements.push(new_element);
     }
 
     pub fn remove(&mut self, index: (usize, usize)) -> Option<T> {
@@ -24,35 +46,35 @@ where T: Sized + Copy {
 
         let elements = &mut self.elements;
     
-        let mut output: Option<T> = None;
-        elements.retain(|a| {
+        for (i, a) in elements.iter().enumerate() {
             if a.column == x && a.row == y {
-                output = Some(a.value);
-                true
+                return Some(elements.remove(i).value);
             }
-            else {
-                false
-            }
-        });
-
-        output
+        }
+        None
     }
 
     pub fn values(&self) -> impl Iterator<Item = &SparseMatrixElement<T>> {
         self.elements.iter()
     }
+
+    pub fn purge(&mut self, index: (usize, usize)) {
+        let elements = &mut self.elements;
+
+        elements.retain(|a| {
+            a.value != self.default_value
+        });
+    }
 }
 
-impl <T> SparseMatrix<T>
-where T: Sized + Copy + Default {
+impl <T:PartialEq + Default> SparseMatrix<T> {
     /// Creates a new [`SparseMatrix<T>`].
     pub fn new(shape: (usize, usize)) -> Self {
         Self::new_with_default(shape, Default::default())
     }
 }
 
-impl <T> IndexMut<(usize, usize)> for SparseMatrix<T>
-where T: Sized + Copy {
+impl <T: PartialEq + Copy> IndexMut<(usize, usize)> for SparseMatrix<T> {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
         let SparseMatrix { default_value, shape: (shape_x, shape_y), .. } = self;
         let (x, y) = index;
@@ -79,8 +101,7 @@ where T: Sized + Copy {
     }
 }
 
-impl <T> Index<(usize, usize)> for SparseMatrix<T>
-where T: Sized + Copy {
+impl <T: PartialEq> Index<(usize, usize)> for SparseMatrix<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
@@ -95,14 +116,13 @@ where T: Sized + Copy {
     }
 }
 
-impl <T> Debug for SparseMatrix<T>
-where T: Sized + Copy + Debug {
+impl <T: PartialEq + Debug> Debug for SparseMatrix<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "SparseMatrix {:?}", self.shape)?;
 
         for i in 0..self.shape.0 {
             for j in 0..self.shape.1 {
-                let value = self[(i,j)];
+                let value = &self[(i,j)];
 
                 write!(f, "{:?}\t", value)?;
             }

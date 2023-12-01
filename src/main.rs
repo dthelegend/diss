@@ -9,6 +9,35 @@ use log::{info, set_max_level, LevelFilter};
 
 use crate::problem::ReducibleProblem;
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_qubo() {
+        const QUBO_TEST_SIZE : usize = 10;
+        
+        let mut rng = rand::thread_rng();
+    
+        let mut qubo_problem = problem::qubo::QuboProblem::new(QUBO_TEST_SIZE);
+    
+        println!("Generating problem...");
+        for i in 0..QUBO_TEST_SIZE {
+            for j in 0..(i + 1) {
+                println!("({},{})", i, j);
+                qubo_problem[(i,j)] = rand::Rng::gen_range(&mut rng, -10..10)
+            }
+        }
+        println!("Generated problem:\n{:?}", qubo_problem);
+        
+        let qubo_solution = qubo_problem.solve();
+    
+        let x = qubo_problem.validate_solution(&qubo_solution);
+    
+        println!("Evaluation for solution {:?} is {}", qubo_solution, x)
+    }
+}
+
 #[derive(Parser)]
 struct SolverCli {
     #[arg(short='j')]

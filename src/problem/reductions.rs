@@ -21,7 +21,11 @@ pub enum SatToQuboReduction {
 impl ReducibleProblem<SatToQuboReduction, KSatSolution, bool, QuboSolution, i32> for KSatProblem {
     fn reduce(&self, reduction: SatToQuboReduction) -> Box<dyn super::Problem<QuboSolution, i32>> {
         match reduction {
-            SatToQuboReduction::Choi => todo!(),
+            SatToQuboReduction::Choi => {
+                let size = 1;
+
+                Box::new(QuboProblem::new_with_backend(size, super::qubo::QuboProblemBackend::SimulatedAnnealing))
+            },
             SatToQuboReduction::Chancellor => todo!(),
             SatToQuboReduction::Nuesslein2022 => todo!(),
             SatToQuboReduction::Nuesslein2023 => todo!(),

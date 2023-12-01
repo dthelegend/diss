@@ -1,7 +1,7 @@
 #let title = [Solving Boolean Satisfiability in Parallel using a QUBO Reduction]
 
 #set text(
-  font: "BlexSerif Nerd Font",
+  font: "Times New Roman",
   size: 11pt
 )
 #set page(
@@ -35,7 +35,7 @@
 
 = Introduction
 
-The boolean Satisfiability problem is a well studied NP-Hard decision problem solvers
+The boolean Satisfiability problem is a very well studied NP-Complete decision problem solvers
 
 == Parallel & Quantum Computing
 
@@ -77,7 +77,7 @@ This project carries a broad external applicability, with potential implications
 
 = Design
 
-The solver is designed to be flexible and allow for the implementation of many alternative backends allowing for different reduction and solving algorithms to easily be compared to one another. The general flow for solvving a problem is shown below.
+The solver is designed to be flexible and allow for the implementation of many alternative backends allowing for different reduction and solving algorithms to easily be compared to one another. The general flow for solving a problem is shown below.
 
 // TODO: Image of solver pipeline
 
@@ -91,7 +91,7 @@ The plan is for the solver to implements 5 reduction algorithms:
 - A novel method which reduces K-SAT to Max-2-SAT and then to QUBO
 - *Chancellor* @chancellor_direct_2016 which directly encodes problems in a Hamiltonian function that defines the QUBO Matrix. This is the current state-of-the-art method, and the resulting QUBO Matrices are notably smaller than that of Choi.
 - *Nusslein 2022* @nuslein_algorithmic_2022 is similar to Chancellor, but is supposed to scale better for QUBO formulations where the resulting QUBO graph has a number of edges that is sub-quadratic i.e. $|E| = Theta(|V|)$
-- *Nusslein 2023* @nuslein_solving_2023 is a preprint which is supposed to produce smaller QUBO matrices than Chancellor with similar characteristics
+- *Nusslein 2023* @nuslein_solving_2023 is a from a preprint paper which is supposed to produce smaller QUBO matrices than Chancellor with similar characteristics
 
 == QUBO Solving Algorithms
 
@@ -177,6 +177,8 @@ pub enum KSatSolution {
 // ...
 pub struct QuboSolution(pub Vec<bool>);
 ```
+
+// TODO: Write something about an implemented reduction
 
 == Solving
 

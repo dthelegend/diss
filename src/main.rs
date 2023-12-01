@@ -2,20 +2,45 @@ mod matrix;
 mod problem;
 mod error;
 
-use std::{io::{self}, fs::File, path::PathBuf};
+use std::{io::{self}, fs::File, path::PathBuf, thread::available_parallelism};
 use clap::Parser;
 use problem::{Problem, sat::KSatProblem, reductions::SatToQuboReduction};
+use log::{info, set_max_level, LevelFilter};
 
 use crate::problem::ReducibleProblem;
 
 #[derive(Parser)]
 struct SolverCli {
+    #[arg(short='j')]
+    jobs: Option<usize>,
     #[arg()]
-    file: Option<PathBuf>
+    file: Option<PathBuf>,
+    #[arg(short='v', action = clap::ArgAction::Count)]
+    verbose: u8,
 }
 
 fn main() -> Result<(), error::Error> {
     let args = SolverCli::parse();
+
+    let verbosity = match args.verbose {
+        0 => LevelFilter::Off,
+        1 => LevelFilter::Error,
+        2 => LevelFilter::Warn,
+        3 => LevelFilter::Info,
+        4 => LevelFilter::Debug,
+        _ => LevelFilter::Trace
+    };
+
+    simple_logger::SimpleLogger::new().init().unwrap();
+    set_max_level(verbosity);
+
+    let n_jobs = match args.jobs {
+        Some(x) => x,
+        None => available_parallelism()
+            .map_err(|x| error::Error { kind: error::ErrorKind::IO(x.kind())})?.get(),
+    };
+
+    info!("Running on {} threads", n_jobs);
 
     let file: Box<dyn io::Read> = match args.file {
         Some(x) => Box::new(File::open(x).unwrap()),

@@ -4,13 +4,14 @@ mod error;
 
 use std::{io::{self}, fs::File, path::PathBuf, thread::available_parallelism};
 use clap::Parser;
-use problem::{Problem, sat::KSatProblem, reductions::SatToQuboReduction};
 use log::{info, set_max_level, LevelFilter};
 
-use crate::problem::ReducibleProblem;
+use crate::problem::{reductions::sat::SatToQuboReduction, sat::ksat::KSatProblem, ReducibleProblem, Problem};
 
 #[cfg(test)]
 mod tests {
+    use crate::problem::Problem;
+
     use super::*;
 
     #[test]
@@ -20,12 +21,14 @@ mod tests {
         let mut rng = rand::thread_rng();
     
         let mut qubo_problem = problem::qubo::QuboProblem::new(QUBO_TEST_SIZE);
+        
+        assert_eq!(QUBO_TEST_SIZE, qubo_problem.get_size());
     
         println!("Generating problem...");
         for i in 0..QUBO_TEST_SIZE {
             for j in 0..(i + 1) {
                 println!("({},{})", i, j);
-                qubo_problem[(i,j)] = rand::Rng::gen_range(&mut rng, -10..10)
+                qubo_problem[(i,j)] = rand::Rng::gen_range(&mut rng, -10..11)
             }
         }
         println!("Generated problem:\n{:?}", qubo_problem);

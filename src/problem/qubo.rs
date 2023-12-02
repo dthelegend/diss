@@ -49,7 +49,10 @@ impl Problem<QuboSolution, i32> for QuboProblem {
             QuboProblemBackend::SimulatedAnnealing => {
                 // Could likely be improved with a solution cache, but works well enough for demonstrative purposes
                 const K_MAX: i32 = 1000;
-                fn anneal_helper(problem: &QuboProblem, solution: QuboSolution, k: i32) -> QuboSolution {
+
+                let mut solution = QuboSolution((0..self.get_size()).map(|_| thread_rng().gen_bool(0.5)).collect());
+
+                for k in 0..K_MAX {
                     debug!("Current solution: {:?}", solution);
 
                     if k <= 0 {
@@ -66,7 +69,7 @@ impl Problem<QuboSolution, i32> for QuboProblem {
                             QuboSolution(vec)
                         })
                         .map(|x| {
-                            let validate_solution = problem.validate_solution(&x);
+                            let validate_solution = self.validate_solution(&x);
                             (x, validate_solution)
                         })
                         .unzip();
@@ -89,18 +92,14 @@ impl Problem<QuboSolution, i32> for QuboProblem {
                     let mut rng = thread_rng();
                     let chosen_neighbour_number = dist.sample(&mut rng);
 
-                    let chosen_neighbour = if evals[chosen_neighbour_number] < problem.validate_solution(&solution) || rng.gen_bool(temperature) {
+                    solution = if evals[chosen_neighbour_number] < self.validate_solution(&solution) || rng.gen_bool(temperature) {
                         neighbours.swap_remove(chosen_neighbour_number)
                     } else {
                         solution
                     };
-
-                    anneal_helper(problem, chosen_neighbour, k-1)
                 }
 
-                let start_solution = QuboSolution((0..self.get_size()).map(|_| thread_rng().gen_bool(0.5)).collect());
-
-                anneal_helper(self, start_solution, K_MAX)
+                return solution;
             },
         }
     }

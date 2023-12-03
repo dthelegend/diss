@@ -1,65 +1,37 @@
-
 use crate::problem::{sat::{SatSolution, ksat::KSatProblem}, qubo::{QuboProblem, QuboSolution}};
 
-use super::{sat_to_qubo::SatToQuboReduction, Reducer, ReducedProblem, ksat_to_threesat::KSatToThreeSatReducer};
+use super::{*, sat_to_qubo::ThreeSatToQuboReduction, ksat_to_threesat::KSatToThreeSatReduction};
 
-#[derive(Clone, Copy, Default)]
-pub enum KSatToQuboReducer {
-    /// An optimised reduction of K-SAT to 3-SAT to MIS to QUBO
+#[derive(Default)]
+pub enum KSatToQuboReduction {
+    /// An optimised reduction of K-SAT to 3-SAT to MIS to QUBO <br/>
     /// Not expecting this to run well :/
     Choi,
-    /// An optimised reduction from 3 SAT to Max-2-SAT to QUBO
+    /// An optimised reduction from 3 SAT to Max-2-SAT to QUBO <br/>
     /// Also not expecting this to run well :/
     Novel,
     /// The current state-of-the-art reduction
     #[default]
     Chancellor,
-    /// A reduction that scales well for sub-quadratic QUBO formulations
+    /// A reduction that scales well for sub-quadratic QUBO formulations <br/>
     /// You cannot tell looking at a problem whether |E| = O(k|V|) or |E| = O(|V|*|V|)
     Nuesslein2022,
     /// A reduction that scales better than Chancellor, but the paper on it is still in preprint
     Nuesslein2023,
 }
 
-pub struct KSatToQuboReducedProblem<'a> {
-    problem: &'a KSatProblem,
-    reduced_problem: QuboProblem,
-    reduction: KSatToQuboReducer
-}
+impl <'a> Reduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboReduction {
+    fn reduce_problem(&self, problem: KSatProblem) -> QuboProblem {
+        match self {
+            KSatToQuboReduction::Choi => {
+                let threesat_problem = KSatToThreeSatReduction.reduce_problem(problem);
 
-impl Reducer<SatSolution, bool, KSatProblem, QuboSolution, i32, QuboProblem> for KSatToQuboReducer {
-    fn reduce(self, problem: &KSatProblem) -> Box<dyn ReducedProblem<SatSolution, bool, KSatProblem, QuboSolution, i32, QuboProblem> + '_> {
-        let reduced_problem = match self {
-            KSatToQuboReducer::Choi => {
-                let threesat_version = KSatToThreeSatReducer.reduce(problem);
-                let qubo_version = SatToQuboReduction::Choi.reduce(threesat_version.get_reduced_problem());
-
-                qubo_version.get_reduced_problem()
+                ThreeSatToQuboReduction::Choi.reduce_problem(threesat_problem)
             },
-            KSatToQuboReducer::Novel => todo!(),
-            KSatToQuboReducer::Chancellor => todo!(),
-            KSatToQuboReducer::Nuesslein2022 => todo!(),
-            KSatToQuboReducer::Nuesslein2023 => todo!(),
-        };
-
-        Box::new(KSatToQuboReducedProblem {
-            problem,
-            reduced_problem: *reduced_problem,
-            reduction: self
-        })
-    }
-}
-
-impl <'a> ReducedProblem<SatSolution, bool, KSatProblem, QuboSolution, i32, QuboProblem> for KSatToQuboReducedProblem<'a> {
-    fn get_reduced_problem(&self) -> &QuboProblem {
-        &self.reduced_problem
-    }
-
-    fn get_original_problem(&self) -> &KSatProblem {
-        &self.problem
-    }
-
-    fn convert_solution(&self, solution : QuboSolution) -> SatSolution {
-        todo!()
+            KSatToQuboReduction::Novel => todo!(),
+            KSatToQuboReduction::Chancellor => todo!(),
+            KSatToQuboReduction::Nuesslein2022 => todo!(),
+            KSatToQuboReduction::Nuesslein2023 => todo!(),
+        }
     }
 }

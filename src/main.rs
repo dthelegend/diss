@@ -4,14 +4,12 @@ mod error;
 
 use std::{io::{self}, fs::File, path::PathBuf, thread::available_parallelism};
 use clap::Parser;
-use log::{info, set_max_level, LevelFilter};
+use log::{info, set_max_level, LevelFilter, debug, log_enabled, trace};
 
-use crate::problem::{reductions::{ksat_to_qubo::KSatToQuboReducer, Reducer}, sat::ksat::KSatProblem, Problem};
+use crate::problem::{sat::ksat::KSatProblem, reductions::{ksat_to_qubo::KSatToQuboReduction, Reduction}, Problem};
 
 #[cfg(test)]
 mod tests {
-    use crate::problem::Problem;
-
     use super::*;
 
     #[test]
@@ -56,15 +54,15 @@ fn main() -> Result<(), error::Error> {
 
     let verbosity = match args.verbose {
         0 => LevelFilter::Off,
-        1 => LevelFilter::Error,
-        2 => LevelFilter::Warn,
-        3 => LevelFilter::Info,
-        4 => LevelFilter::Debug,
+        1 => LevelFilter::Info,
+        2 => LevelFilter::Debug,
         _ => LevelFilter::Trace
     };
 
     simple_logger::SimpleLogger::new().init().unwrap();
     set_max_level(verbosity);
+
+    trace!("Current Verbosity is {}", verbosity);
 
     let n_jobs = match args.jobs {
         Some(x) => x,
@@ -83,16 +81,23 @@ fn main() -> Result<(), error::Error> {
 
     let problem = KSatProblem::from_benchmark_file(buf_reader)?;
 
-    println!("{:?}", problem);
+    debug!("Input generated: {:?}", problem);
     
     // let solution = problem.solve();
-    let solution = KSatToQuboReducer::Choi.reduce(&problem).solve();
+    let qubo_problem = KSatToQuboReduction::Choi.reduce_problem(problem);
+    debug!("Reduction produced: {:?}", qubo_problem);
 
-    if !problem.evaluate_solution(&solution) {
-        panic!("Found invalid solution {:?}", solution);
+    let solution = qubo_problem.solve();
+
+    if log_enabled!(log::Level::Debug) {
+        let eval = qubo_problem.evaluate_solution(&solution);
+        debug!("Solution (evaluation: {}) {:?}", eval, solution);
     }
-    
-    println!("{}", solution);
 
-    Ok(())
+    // TODO convert solution back
+    // if !problem.evaluate_solution(&solution) {
+    //     panic!("Found invalid solution {:?}", solution);
+    // }
+
+    todo!()
 }

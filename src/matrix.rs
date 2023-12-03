@@ -58,7 +58,7 @@ impl <T: PartialEq> SparseMatrix<T> {
         self.elements.iter()
     }
 
-    pub fn purge(&mut self, index: (usize, usize)) {
+    pub fn purge(&mut self) {
         let elements = &mut self.elements;
 
         elements.retain(|a| {

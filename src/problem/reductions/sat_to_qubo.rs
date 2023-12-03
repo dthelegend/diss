@@ -1,23 +1,17 @@
 use std::iter::zip;
 use crate::problem::{sat::{threesat::ThreeSatProblem, SatSolution, SatVariable}, qubo::{QuboSolution, QuboProblem, QuboProblemBackend}};
 
-use super::{Reducer, ReducedProblem};
+use super::*;
 
-pub enum SatToQuboReduction {
+pub enum ThreeSatToQuboReduction {
     Choi
 }
 
-pub struct SatToQuboReducedProblem<'a> {
-    problem: &'a ThreeSatProblem,
-    reduced_problem: QuboProblem,
-    reduction: SatToQuboReduction
-}
-
-impl Reducer<SatSolution, bool, ThreeSatProblem, QuboSolution, i32, QuboProblem> for SatToQuboReduction {
-    fn reduce(self, problem: &ThreeSatProblem) -> Box<dyn ReducedProblem<SatSolution, bool, ThreeSatProblem, QuboSolution, i32, QuboProblem> + '_> {
+impl Reduction<SatSolution, ThreeSatProblem, QuboSolution, QuboProblem> for ThreeSatToQuboReduction {
+    fn reduce_problem(&self, problem: ThreeSatProblem) -> QuboProblem {
         match self {
-            SatToQuboReduction::Choi => {
-                let ThreeSatProblem { nbvars: size, clauses: threesatclauses } = problem;
+            ThreeSatToQuboReduction::Choi => {
+                let ThreeSatProblem( .. , threesatclauses) = problem;
 
                 let mut reduced_problem = QuboProblem::new_with_backend(threesatclauses.len() * 3, QuboProblemBackend::SimulatedAnnealing);
 
@@ -49,32 +43,7 @@ impl Reducer<SatSolution, bool, ThreeSatProblem, QuboSolution, i32, QuboProblem>
 
                 // NB: For the MIS Problem, the goal is to get an MIS with |V| = threesatclauses.len()
 
-                Box::new(SatToQuboReducedProblem {problem, reduced_problem, reduction: self })
-            }
-        }
-    }
-}
-
-impl <'a> ReducedProblem<SatSolution, bool, ThreeSatProblem, QuboSolution, i32, QuboProblem> for SatToQuboReducedProblem<'a> {
-    fn get_reduced_problem(&self) -> &QuboProblem {
-        &self.reduced_problem
-    }
-
-    fn get_original_problem(&self) -> &ThreeSatProblem {
-        &self.problem
-    }
-
-    fn convert_solution(&self, solution : QuboSolution) -> SatSolution {
-        match self.reduction {
-            SatToQuboReduction::Choi => {
-                let QuboSolution(solution) = solution;
-
-                if solution.chunks(3).map(|c| c.iter().any(|f| *f)).filter(|f| *f).count() < solution.len() / 3 {
-                    SatSolution::Unsat
-                }
-                else {
-                    SatSolution::Unknown
-                }
+                reduced_problem
             }
         }
     }

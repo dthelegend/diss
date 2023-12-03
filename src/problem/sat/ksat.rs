@@ -62,14 +62,8 @@ impl KSatProblem {
 
         Ok(KSatProblem(nbvar, clauses))
     }
-}
 
-impl Problem<SatSolution, bool> for KSatProblem {
-    fn solve(&self) -> SatSolution {
-        unimplemented!()
-    }
-
-    fn evaluate_solution(&self, solution: &SatSolution) -> bool {
+    pub fn evaluate_solution(&self, solution: &SatSolution) -> bool {
         let KSatProblem(nbvars, clauses) = &self;
         let SatSolution::Sat(solution_vector) = solution else {
             return false;
@@ -80,10 +74,16 @@ impl Problem<SatSolution, bool> for KSatProblem {
         clauses.iter().all(|clause| {
             clause.iter().any(|var| {
                 let SatVariable(is_pos, number) = var;
-                // is_pos xor solution[i]
+                
                 is_pos ^ solution_vector[*number]
             })
         })
+    }
+}
+
+impl Problem<SatSolution> for KSatProblem {
+    fn solve(&self) -> SatSolution {
+        unimplemented!()
     }
 }
 

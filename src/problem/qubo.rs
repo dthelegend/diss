@@ -58,20 +58,26 @@ impl Problem<QuboSolution> for QuboProblem {
                         })
                         .unzip();
 
-                    // Softmaxed weights because I can lol
+                    trace!("{:?}", evals);
+
                     let min_eval = evals.iter().min()
                         .expect("Neighbours should never be is empty unless solution is empty, and solution should never be empty!");
                     let max_eval = evals.iter().max()
                         .expect("Neighbours should never be is empty unless solution is empty, and solution should never be empty!");
-                    let weights_exp = evals.iter()
-                    .map(|x| {
-                        let range = min_eval - max_eval;
-                        let norm_x: f64 = if range != 0 {-1.0 + 2.0 * f64::from((min_eval - x) / range)} else { 0.0 };
-                        f64::exp(-norm_x) // minimisation
-                    });
-                    let sum_of_exp: f64 = weights_exp.clone().sum();
-                    let softmaxed_weights = weights_exp.map(|x| x / sum_of_exp);
-                    let dist = WeightedIndex::new(softmaxed_weights)
+                    let range = min_eval - max_eval;
+                    let x : Box<dyn Fn(&i32) -> f64> = if range != 0 {
+                        Box::new(|x| {
+                            1.0 - f64::from((min_eval - x) / range) // 1 - x for minimisation
+                        })
+                    } else {
+                        Box::new(|_| 1.0)
+                    };
+                    let weights: Vec<f64> = evals
+                        .iter()
+                        .map(x)
+                        .collect();
+                    
+                    let dist = WeightedIndex::new(&weights)
                         .expect("Failed to build distribution from softmaxed values");
 
                     let mut rng = thread_rng();
@@ -126,7 +132,7 @@ impl QuboProblem {
 
         // Vector multiply Sparse matrix
         for &matrix::SparseMatrixElement { row, column, value } in self.problem_matrix.values() {
-            x_q[column] += value * (if solution_vector[row] { 1 } else { 0 });
+            x_q[row] += value * (if solution_vector[column] { 1 } else { 0 });
         }
 
         // multiply two matrices

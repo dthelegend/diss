@@ -7,12 +7,12 @@ use super::{Reducer, ReducedProblem};
 pub struct KSatToThreeSatReducer;
 
 pub struct KSatToThreeSatReducedProblem<'a> {
-    problem: &'a ThreeSatProblem,
-    reduced_problem: KSatProblem
+    problem: &'a KSatProblem,
+    reduced_problem: ThreeSatProblem
 }
 
-impl Reducer<SatSolution, bool, SatSolution, bool> for KSatToThreeSatReducer {
-    fn reduce(self, problem: &dyn crate::problem::Problem<SatSolution, bool>) -> Box<dyn super::ReducedProblem<SatSolution, bool, SatSolution, bool>> {
+impl Reducer<SatSolution, bool, KSatProblem, SatSolution, bool, ThreeSatProblem> for KSatToThreeSatReducer {
+    fn reduce(self, problem: &KSatProblem) -> Box<dyn super::ReducedProblem<SatSolution, bool, KSatProblem, SatSolution, bool, ThreeSatProblem> + '_> {
         let KSatProblem(size, clauses) = problem;
 
         let mut reduced_problem = ThreeSatProblem { nbvars: *size, clauses: Vec::with_capacity(*size) };
@@ -91,21 +91,25 @@ impl Reducer<SatSolution, bool, SatSolution, bool> for KSatToThreeSatReducer {
             }
         }
 
-        KSatToThreeSatReducedProblem {
-            problem,
-            reduced_problem
-        }
+        Box::new(KSatToThreeSatReducedProblem {
+            reduced_problem,
+            problem
+        })
     }
 }
 
-impl <'a> ReducedProblem<SatSolution, bool, SatSolution, bool> for KSatToThreeSatReducedProblem<'a> {
-    fn get_reduced_problem(&self) -> &dyn crate::problem::Problem<SatSolution, bool> {
+impl <'a> ReducedProblem<SatSolution, bool, KSatProblem, SatSolution, bool, ThreeSatProblem> for KSatToThreeSatReducedProblem<'a> {
+    fn get_reduced_problem(&self) -> &ThreeSatProblem {
+        &self.reduced_problem
+    }
+
+    fn get_original_problem(&self) -> &KSatProblem {
         &self.problem
     }
 
     fn convert_solution(&self, solution : SatSolution) -> SatSolution {
         match solution {
-            SatSolution::Sat(x) => SatSolution::Sat(x[..self.problem.clauses.len()].to_vec()),
+            SatSolution::Sat(x) => SatSolution::Sat(x[..self.reduced_problem.clauses.len()].to_vec()),
             _ => solution
         }
     }

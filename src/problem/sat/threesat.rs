@@ -14,7 +14,7 @@ impl Problem<SatSolution, bool> for ThreeSatProblem {
         unimplemented!()
     }
 
-    fn validate_solution(&self, solution: &SatSolution) -> bool {
+    fn evaluate_solution(&self, solution: &SatSolution) -> bool {
         let ThreeSatProblem { nbvars, clauses } = &self;
         let SatSolution::Sat(solution_vector) = solution else {
             return false;
@@ -43,6 +43,6 @@ impl Debug for ThreeSatProblem {
                     .join(" + ")))
             .collect::<Vec<String>>()
             .join(" . ");
-        write!(f, "KSatProblem {}", x)
+        write!(f, "ThreeSatProblem {}", x)
     }
 }

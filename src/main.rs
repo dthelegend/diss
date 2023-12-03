@@ -6,7 +6,7 @@ use std::{io::{self}, fs::File, path::PathBuf, thread::available_parallelism};
 use clap::Parser;
 use log::{info, set_max_level, LevelFilter};
 
-use crate::problem::{reductions::sat::SatToQuboReduction, sat::ksat::KSatProblem, ReducibleProblem, Problem};
+use crate::problem::{reductions::{ksat_to_qubo::KSatToQuboReducer, Reducer}, sat::ksat::KSatProblem, Problem};
 
 #[cfg(test)]
 mod tests {
@@ -35,7 +35,7 @@ mod tests {
         
         let qubo_solution = qubo_problem.solve();
     
-        let x = qubo_problem.validate_solution(&qubo_solution);
+        let x = qubo_problem.evaluate_solution(&qubo_solution);
     
         println!("Evaluation for solution {:?} is {}", qubo_solution, x)
     }
@@ -86,9 +86,9 @@ fn main() -> Result<(), error::Error> {
     println!("{:?}", problem);
     
     // let solution = problem.solve();
-    let solution = problem.solve_with_reduction(SatToQuboReduction::Choi);
+    let solution = KSatToQuboReducer::Choi.reduce(&problem).solve();
 
-    if !problem.validate_solution(&solution) {
+    if !problem.evaluate_solution(&solution) {
         panic!("Found invalid solution {:?}", solution);
     }
     

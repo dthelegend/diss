@@ -69,7 +69,7 @@ impl Problem<SatSolution, bool> for KSatProblem {
         unimplemented!()
     }
 
-    fn validate_solution(&self, solution: &SatSolution) -> bool {
+    fn evaluate_solution(&self, solution: &SatSolution) -> bool {
         let KSatProblem(nbvars, clauses) = &self;
         let SatSolution::Sat(solution_vector) = solution else {
             return false;

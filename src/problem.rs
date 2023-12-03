@@ -2,11 +2,9 @@ pub mod sat;
 pub mod qubo;
 pub mod reductions;
 
-use std::fmt::Debug;
-
-use log::debug;
-
-pub trait Problem<SolutionType, EvaluationType>: Debug {
+pub trait Problem<SolutionType, EvaluationType> {
+    /// Generates a solution for the problem
     fn solve(&self) -> SolutionType;
-    fn validate_solution(&self, solution: &SolutionType) -> EvaluationType;
+    /// Evaluates a given solution for the problem
+    fn evaluate_solution(&self, solution: &SolutionType) -> EvaluationType;
 }

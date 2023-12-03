@@ -1,5 +1,5 @@
 use std::iter::zip;
-use crate::problem::{sat::{threesat::ThreeSatProblem, SatSolution, SatVariable}, qubo::{QuboSolution, QuboProblem, QuboProblemBackend}, Problem};
+use crate::problem::{sat::{threesat::ThreeSatProblem, SatSolution, SatVariable}, qubo::{QuboSolution, QuboProblem, QuboProblemBackend}};
 
 use super::{Reducer, ReducedProblem};
 
@@ -13,11 +13,11 @@ pub struct SatToQuboReducedProblem<'a> {
     reduction: SatToQuboReduction
 }
 
-impl Reducer<SatSolution, bool, QuboSolution, i32> for SatToQuboReduction {
-    fn reduce(self, problem: &dyn Problem<SatSolution, bool>) -> Box<dyn super::ReducedProblem<SatSolution, bool, QuboSolution, i32>> {
+impl Reducer<SatSolution, bool, ThreeSatProblem, QuboSolution, i32, QuboProblem> for SatToQuboReduction {
+    fn reduce(self, problem: &ThreeSatProblem) -> Box<dyn ReducedProblem<SatSolution, bool, ThreeSatProblem, QuboSolution, i32, QuboProblem> + '_> {
         match self {
             SatToQuboReduction::Choi => {
-                let ThreeSatProblem { nbvars: size, clauses: threesatclauses } = self;
+                let ThreeSatProblem { nbvars: size, clauses: threesatclauses } = problem;
 
                 let mut reduced_problem = QuboProblem::new_with_backend(threesatclauses.len() * 3, QuboProblemBackend::SimulatedAnnealing);
 
@@ -49,14 +49,18 @@ impl Reducer<SatSolution, bool, QuboSolution, i32> for SatToQuboReduction {
 
                 // NB: For the MIS Problem, the goal is to get an MIS with |V| = threesatclauses.len()
 
-                SatToQuboReducedProblem {problem, reduced_problem, reduction: self }
+                Box::new(SatToQuboReducedProblem {problem, reduced_problem, reduction: self })
             }
         }
     }
 }
 
-impl <'a> ReducedProblem<SatSolution, bool, QuboSolution, i32> for SatToQuboReducedProblem<'a> {
-    fn get_reduced_problem(&self) -> &dyn Problem<QuboSolution, i32> {
+impl <'a> ReducedProblem<SatSolution, bool, ThreeSatProblem, QuboSolution, i32, QuboProblem> for SatToQuboReducedProblem<'a> {
+    fn get_reduced_problem(&self) -> &QuboProblem {
+        &self.reduced_problem
+    }
+
+    fn get_original_problem(&self) -> &ThreeSatProblem {
         &self.problem
     }
 

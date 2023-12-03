@@ -24,7 +24,7 @@ pub struct QuboProblem {
 pub struct QuboSolution(pub Vec<bool>);
 
 impl Problem<QuboSolution, i32> for QuboProblem {
-    fn validate_solution(&self, solution: &QuboSolution) -> i32 {
+    fn evaluate_solution(&self, solution: &QuboSolution) -> i32 {
         let QuboSolution(solution_vector) = solution;
         assert!(solution_vector.len() == self.get_size());
 
@@ -69,7 +69,7 @@ impl Problem<QuboSolution, i32> for QuboProblem {
                             QuboSolution(vec)
                         })
                         .map(|x| {
-                            let validate_solution = self.validate_solution(&x);
+                            let validate_solution = self.evaluate_solution(&x);
                             (x, validate_solution)
                         })
                         .unzip();
@@ -92,7 +92,7 @@ impl Problem<QuboSolution, i32> for QuboProblem {
                     let mut rng = thread_rng();
                     let chosen_neighbour_number = dist.sample(&mut rng);
 
-                    solution = if evals[chosen_neighbour_number] < self.validate_solution(&solution) || rng.gen_bool(temperature) {
+                    solution = if evals[chosen_neighbour_number] < self.evaluate_solution(&solution) || rng.gen_bool(temperature) {
                         neighbours.swap_remove(chosen_neighbour_number)
                     } else {
                         solution

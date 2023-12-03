@@ -1,4 +1,4 @@
-use std::{ops::{Index, IndexMut}, iter::zip, fmt::Debug};
+use std::{ops::{Index, IndexMut}, iter::zip, fmt::{Debug, Display}};
 use log::{trace, log_enabled};
 use crate::matrix;
 use rand::{Rng, thread_rng, distributions::{weighted::WeightedIndex, Distribution}};
@@ -16,6 +16,7 @@ pub enum QuboProblemBackend {
     SimulatedAnnealing
 }
 
+#[derive(Debug)]
 pub struct QuboProblem {
     problem_matrix: matrix::SparseMatrix<i32>,
     problem_backend: QuboProblemBackend
@@ -64,7 +65,8 @@ impl Problem<QuboSolution> for QuboProblem {
                         .expect("Neighbours should never be is empty unless solution is empty, and solution should never be empty!");
                     let weights_exp = evals.iter()
                     .map(|x| {
-                        let norm_x: f64 = -1.0 + 2.0 * f64::from((min_eval - x ) / (min_eval - max_eval));
+                        let range = min_eval - max_eval;
+                        let norm_x: f64 = if range != 0 {-1.0 + 2.0 * f64::from((min_eval - x) / range)} else { 0.0 };
                         f64::exp(-norm_x) // minimisation
                     });
                     let sum_of_exp: f64 = weights_exp.clone().sum();
@@ -156,7 +158,7 @@ impl Debug for QuboSolution {
     }
 }
 
-impl Debug for QuboProblem {
+impl Display for QuboProblem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "QUBOProblem[Backend = {:?}] ({},{})", self.problem_backend, self.problem_matrix.shape.0, self.problem_matrix.shape.1)
     }

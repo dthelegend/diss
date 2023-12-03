@@ -53,7 +53,7 @@ impl KSatProblem {
                 })
                 .collect();
 
-            if clause.iter().any(|f| f.1 >= nbclauses) {
+            if clause.iter().any(|f| f.1 >= nbvar) {
                 return Err(Error { kind: ErrorKind::ClauseError });
             }
         

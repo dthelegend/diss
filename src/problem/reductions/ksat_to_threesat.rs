@@ -7,10 +7,10 @@ use super::*;
 pub struct KSatToThreeSatReduction;
 
 impl Reduction<SatSolution, KSatProblem, SatSolution, ThreeSatProblem> for KSatToThreeSatReduction {
-    fn reduce_problem(&self, problem: KSatProblem) -> ThreeSatProblem {
+    fn reduce_problem(&self, problem: &KSatProblem) -> ThreeSatProblem {
         let KSatProblem(size, clauses) = problem;
 
-        let mut reduced_problem = ThreeSatProblem(size, Vec::with_capacity(size));
+        let mut reduced_problem = ThreeSatProblem(*size, Vec::with_capacity(*size));
 
         for clause in clauses {
             match &clause[..] {
@@ -87,5 +87,18 @@ impl Reduction<SatSolution, KSatProblem, SatSolution, ThreeSatProblem> for KSatT
         }
 
         reduced_problem
+    }
+}
+
+impl SolutionReversibleReduction<SatSolution, KSatProblem, SatSolution, ThreeSatProblem> for KSatToThreeSatReduction {
+    fn reverse_reduce_solution(&self, problem: &KSatProblem, solution: SatSolution) -> SatSolution {
+        match solution {
+            SatSolution::Sat(vars) => {
+                let size = problem.0;
+
+                SatSolution::Sat(vars[..size].to_vec())
+            },
+            _ => solution
+        }
     }
 }

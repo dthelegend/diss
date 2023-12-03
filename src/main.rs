@@ -6,7 +6,7 @@ use std::{io::{self}, fs::File, path::PathBuf, thread::available_parallelism};
 use clap::Parser;
 use log::{info, set_max_level, LevelFilter, debug, log_enabled, trace};
 
-use crate::problem::{sat::ksat::KSatProblem, reductions::{ksat_to_qubo::KSatToQuboReduction, Reduction}, Problem};
+use crate::problem::{sat::ksat::KSatProblem, reductions::{ksat_to_qubo::KSatToQuboReduction, Reduction, SolutionReversibleReduction}, Problem};
 
 #[cfg(test)]
 mod tests {
@@ -84,20 +84,19 @@ fn main() -> Result<(), error::Error> {
     debug!("Input generated: {:?}", problem);
     
     // let solution = problem.solve();
-    let qubo_problem = KSatToQuboReduction::Choi.reduce_problem(problem);
-    debug!("Reduction produced: {:?}", qubo_problem);
+    let qubo_problem = KSatToQuboReduction::Choi.reduce_problem(&problem);
+    debug!("Reduction produced: {}", qubo_problem);
 
-    let solution = qubo_problem.solve();
+    let qubo_solution = qubo_problem.solve();
 
     if log_enabled!(log::Level::Debug) {
-        let eval = qubo_problem.evaluate_solution(&solution);
-        debug!("Solution (evaluation: {}) {:?}", eval, solution);
+        let eval = qubo_problem.evaluate_solution(&qubo_solution);
+        debug!("Solution (evaluation: {}) {:?}", eval, qubo_solution);
     }
 
-    // TODO convert solution back
-    // if !problem.evaluate_solution(&solution) {
-    //     panic!("Found invalid solution {:?}", solution);
-    // }
+    let solution = KSatToQuboReduction::Choi.reverse_reduce_solution(&problem, qubo_solution);
+    
+    println!("{:?}", solution);
 
-    todo!()
+    Ok(())
 }

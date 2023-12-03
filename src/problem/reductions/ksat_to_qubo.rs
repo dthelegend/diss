@@ -20,13 +20,31 @@ pub enum KSatToQuboReduction {
     Nuesslein2023,
 }
 
-impl <'a> Reduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboReduction {
-    fn reduce_problem(&self, problem: KSatProblem) -> QuboProblem {
+impl Reduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboReduction {
+    fn reduce_problem(&self, problem: &KSatProblem) -> QuboProblem {
         match self {
             KSatToQuboReduction::Choi => {
                 let threesat_problem = KSatToThreeSatReduction.reduce_problem(problem);
 
-                ThreeSatToQuboReduction::Choi.reduce_problem(threesat_problem)
+                ThreeSatToQuboReduction::Choi.reduce_problem(&threesat_problem)
+            },
+            KSatToQuboReduction::Novel => todo!(),
+            KSatToQuboReduction::Chancellor => todo!(),
+            KSatToQuboReduction::Nuesslein2022 => todo!(),
+            KSatToQuboReduction::Nuesslein2023 => todo!(),
+        }
+    }
+}
+
+impl SolutionReversibleReduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboReduction {
+    fn reverse_reduce_solution(&self, problem: &KSatProblem, solution: QuboSolution) -> SatSolution {
+        match self {
+            KSatToQuboReduction::Choi => {
+                let threesat_problem = KSatToThreeSatReduction.reduce_problem(problem);
+                
+                let threesat_solution = ThreeSatToQuboReduction::Choi.reverse_reduce_solution(&threesat_problem, solution);
+
+                KSatToThreeSatReduction.reverse_reduce_solution(problem, threesat_solution)
             },
             KSatToQuboReduction::Novel => todo!(),
             KSatToQuboReduction::Chancellor => todo!(),

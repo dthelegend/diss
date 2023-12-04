@@ -61,24 +61,14 @@ impl SolutionReversibleReduction<SatSolution, ThreeSatProblem, QuboSolution, Qub
             return SatSolution::Unsat;
         }
 
-        let mut output_solution_vector: Vec<Option<bool>> = vec![None; problem.0];
+        let mut output_solution_vector: Vec<bool> = vec![false; problem.0];
 
         println!("{:?}", problem);
 
-        for (is_pos_in_model, SatVariable(is_pos, b)) in zip(x.chunks(3), threesatclauses).flat_map(|(b, v)| zip(b,v)) {
-            let evaluated_value = !(is_pos_in_model ^ is_pos);
-            if let Some(existing_value) = output_solution_vector[*b] {
-                // Model Conflicts with itself. Solution is therefore not optimal
-                if existing_value != evaluated_value {
-                    debug!("Model Conflicts with itself! Solution is therefore not optimal! {}{b} != {}{b}", if existing_value { "¬" } else { "" }, if evaluated_value { "¬" } else { "" });
-                    return SatSolution::Unknown;
-                }
-            }
-            else {
-                output_solution_vector[*b] = Some(evaluated_value)
-            }
+        for SatVariable(is_pos, b) in zip(x.chunks(3), threesatclauses).flat_map(|(b, v)| zip(b,v)).filter(|(b, _)| **b).map(|(_,v)| v) {
+            output_solution_vector[*b] = *is_pos;
         }
 
-        SatSolution::Sat(output_solution_vector.iter().map(|x| x.expect("All variables should be modelled!")).collect())
+        SatSolution::Sat(output_solution_vector)
     }
 }

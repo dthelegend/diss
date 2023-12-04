@@ -4,7 +4,7 @@ mod error;
 
 use std::{io::{self}, fs::File, path::PathBuf, thread::available_parallelism};
 use clap::Parser;
-use log::{info, set_max_level, LevelFilter, debug, log_enabled, trace};
+use log::{info, set_max_level, LevelFilter, debug, log_enabled, trace, error};
 
 use crate::problem::{sat::ksat::KSatProblem, reductions::{ksat_to_qubo::KSatToQuboReduction, Reduction, SolutionReversibleReduction}, Problem};
 
@@ -96,6 +96,10 @@ fn main() -> Result<(), error::Error> {
 
     let solution = KSatToQuboReduction::Choi.reverse_reduce_solution(&problem, qubo_solution);
     
+    if log_enabled!(log::Level::Error) && problem.evaluate_solution(&solution) {
+        error!("Solution found is invalid!")
+    }
+
     println!("{:?}", solution);
 
     Ok(())

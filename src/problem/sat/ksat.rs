@@ -72,10 +72,8 @@ impl KSatProblem {
         assert!(*nbvars == solution_vector.len(), "Solution vector is not same size as number of clauses");
     
         clauses.iter().all(|clause| {
-            clause.iter().any(|var| {
-                let SatVariable(is_pos, number) = var;
-                
-                is_pos ^ solution_vector[*number]
+            clause.iter().any(|&SatVariable(is_pos, number)| {
+                !(is_pos ^ solution_vector[number])
             })
         })
     }

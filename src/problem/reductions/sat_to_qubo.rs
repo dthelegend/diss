@@ -5,6 +5,7 @@ use crate::problem::{sat::{threesat::ThreeSatProblem, SatSolution, SatVariable},
 use super::*;
 
 pub enum ThreeSatToQuboReduction {
+    /// This reduction is O(n^2). Technically still polynomial time
     Choi
 }
 
@@ -32,8 +33,8 @@ impl Reduction<SatSolution, ThreeSatProblem, QuboSolution, QuboProblem> for Thre
                     reduced_problem[(i * 3, i * 3 + 2)] = EDGE_WEIGHT;
                     reduced_problem[(i * 3 + 1, i * 3 + 2)] = EDGE_WEIGHT;
 
+                    // TODO: Potential for optimisation
                     for (j, yn) in threesatclauses.iter().enumerate() {
-                        // If the clauses are in conflict add an edge
                         if i != j {
                             // Check for conflict between clauses xn and yn
                             for (c_xi, c_x) in xn.iter().enumerate() {
@@ -60,8 +61,12 @@ impl SolutionReductionReverser<SatSolution, ThreeSatProblem, QuboSolution, QuboP
                 let QuboSolution( x ) = solution;
         
                 // NB: For the MIS Problem, the goal is to get an MIS with |V| = threesatclauses.len()
-                if !x.chunks(3).map(|f| f.iter().any(|f| *f)).all(|f| f) {
-                    return SatSolution::Unsat;
+                
+                // There must be exactly one true statement per clause for our solution to be SAT
+                if !x.chunks(3).map(|f| f.iter().filter(|f| **f).count()).all(|f| f == 1) {
+                    // Unknown as without an exhaustive search of the solution space a couple more times to be sure we cannot know if
+                    // The problem is truly UNSAT and SA as implemented doesn't produce a way to track this
+                    return SatSolution::Unknown;
                 }
         
                 let mut output_solution_vector: Vec<bool> = vec![false; *nbvars];

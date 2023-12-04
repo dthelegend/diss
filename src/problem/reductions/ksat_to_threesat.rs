@@ -4,6 +4,7 @@ use crate::problem::sat::{threesat::ThreeSatProblem, ksat::KSatProblem, SatVaria
 
 use super::*;
 
+/// Reduction is O(n)
 pub struct KSatToThreeSatReduction;
 
 pub struct KSatToThreeSatSolutionReductionReverser(usize);
@@ -61,23 +62,24 @@ impl Reduction<SatSolution, KSatProblem, SatSolution, ThreeSatProblem> for KSatT
                 },
                 [l1,l2,l3] => reduced_problem.1.push([*l1,*l2,*l3]),
                 ln => {
-                    let zn : Vec<usize> = (0..(ln.len() - 3)).map(|x| x + reduced_problem.0).collect();
-                    reduced_problem.0 += ln.len() - 3;
+                    let k = ln.len();
+                    let zn : Vec<usize> = ((reduced_problem.0)..(reduced_problem.0 + k - 3)).collect();
+                    reduced_problem.0 += zn.len();
                 
                     reduced_problem.1.push([
                         ln[0],
                         ln[1],
                         SatVariable(true, zn[0])
                     ]);
-                
-                    for (li, (zi, zj)) in zip(ln[2..ln.len() - 2].iter(), zip(zn[0..zn.len() - 2].iter(), zn[0..zn.len() - 2].iter())) {
+
+                    for (li, (zi, zj)) in zip(ln[0..k].iter(), zip(zn[0..(zn.len() - 1)].iter(), zn[1..zn.len()].iter())) {
                         reduced_problem.1.push([
                             *li,
-                            SatVariable(false, zn[*zi]),
-                            SatVariable(true, zn[*zj])
+                            SatVariable(false, *zi),
+                            SatVariable(true, *zj)
                         ])
                     }
-
+                    
                     reduced_problem.1.push([
                         ln[ln.len() - 2],
                         ln[ln.len() - 1],

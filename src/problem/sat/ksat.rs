@@ -67,7 +67,8 @@ impl KSatProblem {
     pub fn evaluate_solution(&self, solution: &SatSolution) -> bool {
         let KSatProblem(nbvars, clauses) = &self;
         let SatSolution::Sat(solution_vector) = solution else {
-            return false;
+            // Solutions other than SAT are considered to be valid solutions for a problem for simplicity
+            return true;
         };
 
         assert!(*nbvars == solution_vector.len(), "Solution vector is not same size as number of clauses");

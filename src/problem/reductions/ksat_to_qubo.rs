@@ -7,7 +7,8 @@ use super::{*, sat_to_qubo::ThreeSatToQuboReduction, ksat_to_threesat::KSatToThr
 #[derive(Default)]
 pub enum KSatToQuboReduction {
     /// An optimised reduction of K-SAT to 3-SAT to MIS to QUBO <br/>
-    /// Not expecting this to run well :/
+    /// Not expecting this to run well :/ <br />
+    /// Reduction happens in O(n^2)
     Choi,
     /// An optimised reduction from 3 SAT to Max-2-SAT to QUBO <br/>
     /// Also not expecting this to run well :/

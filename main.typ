@@ -120,7 +120,7 @@ The solver then outputs `SAT` with a model, `UNSAT`, or `UNKNOWN`.
 
 == Problem & Solution Encoding
 
-Problems are implemented as Rust traits which makes it easy to implement different problems which can be reduced into one another in definitive ways. There is an interfaces that all problems implement, `Problem`. There is also `Reduction` trait that provides an interface for problems to be reduced from one to another.
+Problems are implemented as Rust traits which makes it easy to implement different problems which can be reduced into one another in definitive ways. There is an interfaces that all problems implement, `Problem`. There is also `Reduction` trait that provides an interface for problems to be reduced from one to another, and a `SolutionReductionReverser` for up-modelling solutions without requiring the whole original problem.
 ```rust
 pub trait Problem<SolutionType, EvaluationType> {
     fn solve(&self) -> SolutionType;
@@ -128,11 +128,15 @@ pub trait Problem<SolutionType, EvaluationType> {
 }
 
 pub trait Reduction<TSolutionType, TProblem: Problem<TSolutionType>, USolutionType, UProblem: Problem<USolutionType>> {
-    /// Applies the reduction to transform the input problem into the output problem
-    fn reduce_problem(&self, problem: &TProblem) -> UProblem;
+    fn reduce_problem(&self, problem: &TProblem) -> (UProblem, Box<dyn SolutionReductionReverser<TSolutionType, TProblem, USolutionType, UProblem>>);
 }
+
+pub trait SolutionReductionReverser<TSolutionType, TProblem: Problem<TSolutionType>, USolutionType, UProblem: Problem<USolutionType>> {
+    fn reverse_reduce_solution(&self, solution: USolutionType) -> TSolutionType;
+}
+
 ```
-This makes it trivial to add new Problems to the solver as intermediary reductions for example the KSAT to QUBO Reduction (simplified)
+This makes it trivial to add new Problems to the solver as intermediary reductions for example the Choi KSAT to QUBO Reduction requires a reduction to 3SAT and then to Maximum Independent Set, which has an identical QUBO reperesntation
 ```rust
 pub enum KSatToQuboReduction {
     Choi,
@@ -144,25 +148,23 @@ impl Reduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQu
     fn reduce_problem(&self, problem: &KSatProblem) -> QuboProblem {
         match self {
             KSatToQuboReduction::Choi => {
-                let threesat_problem = KSatToThreeSatReduction.reduce_problem(problem);
+                let (threesat_problem, threesat_reverser) = KSatToThreeSatReduction.reduce_problem(problem);
+                let (qubo_problem, qubo_reverser) = ThreeSatToQuboReduction::Choi.reduce_problem(threesat_problem);
 
-                ThreeSatToQuboReduction::Choi.reduce_problem(&threesat_problem)
+                (qubo_problem, Box::new(KSatToQuboSolutionReductionReverser::Choi { threesat_reverser, qubo_reverser}))
             },
             // ...
         }
     }
 }
 
-impl SolutionReversibleReduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboReduction {
-    fn reverse_reduce_solution(&self, problem: &KSatProblem, solution: QuboSolution) -> SatSolution {
+impl SolutionReductionReverser<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboSolutionReductionReverser {
+    fn reverse_reduce_solution(&self, solution: QuboSolution) -> SatSolution {
         match self {
-            KSatToQuboReduction::Choi => {
-                // This is innefiecient but works
-                let threesat_problem = KSatToThreeSatReduction.reduce_problem(problem);
-                
-                let threesat_solution = ThreeSatToQuboReduction::Choi.reverse_reduce_solution(&threesat_problem, solution);
+            KSatToQuboSolutionReductionReverser::Choi {qubo_reverser, threesat_reverser} => {
+                let threesat_solution = qubo_reverser.reverse_reduce_solution(solution);
 
-                KSatToThreeSatReduction.reverse_reduce_solution(problem, threesat_solution)
+                threesat_reverser.reverse_reduce_solution(threesat_solution)
             },
             // ...
         }
@@ -213,7 +215,7 @@ TODO: Intricate overview on each of the qubo backends methods and how they work
 
 Work on the project seems to be going smoothly. The work previously identified for Phase One has been completed and some of the Phase two work has begun to be tackled.
 
-The current main challenge to implementation is the current inability to "un-reduce" solutions to their equivalent solution in the original problem. This is not possible/expensive for some of the reductions as far as I can tell. One way to solve this is to implement a consumable Reducer pattern that requires a reference to the original problem in order to reduce it, not sure on how it will be implemented in the final solver as of right now.
+The current main challenge to implementation is the current inability to "un-reduce" solutions to their equivalent solution in the original problem. This might not be possible or may be expensive for some of the reductions.
 
 Most of the work now has to focus on the implementation of the reductions and solvers outlined above and then benchmarking them to find the best possible combination of QUBO Solver and Sat Solver as these reductions and solutions have varying properties that may cause some solvers to be more efficient for some reductions than others.
 

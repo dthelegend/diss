@@ -6,11 +6,13 @@ use super::*;
 
 pub struct KSatToThreeSatReduction;
 
+pub struct KSatToThreeSatSolutionReductionReverser(usize);
+
 impl Reduction<SatSolution, KSatProblem, SatSolution, ThreeSatProblem> for KSatToThreeSatReduction {
-    fn reduce_problem(&self, problem: &KSatProblem) -> ThreeSatProblem {
+    fn reduce_problem(&self, problem: KSatProblem) -> (ThreeSatProblem, Box<dyn SolutionReductionReverser<SatSolution, KSatProblem, SatSolution, ThreeSatProblem>>) {
         let KSatProblem(size, clauses) = problem;
 
-        let mut reduced_problem = ThreeSatProblem(*size, Vec::with_capacity(*size));
+        let mut reduced_problem = ThreeSatProblem(size, Vec::with_capacity(size));
 
         for clause in clauses {
             match &clause[..] {
@@ -54,7 +56,7 @@ impl Reduction<SatSolution, KSatProblem, SatSolution, ThreeSatProblem> for KSatT
                     reduced_problem.1.push([
                         *l1,
                         *l2,
-                        SatVariable(true, z1)
+                        SatVariable(false, z1)
                     ]);
                 },
                 [l1,l2,l3] => reduced_problem.1.push([*l1,*l2,*l3]),
@@ -86,18 +88,16 @@ impl Reduction<SatSolution, KSatProblem, SatSolution, ThreeSatProblem> for KSatT
             }
         }
 
-        reduced_problem
+        (reduced_problem, Box::new(KSatToThreeSatSolutionReductionReverser(size)))
     }
 }
 
-impl SolutionReversibleReduction<SatSolution, KSatProblem, SatSolution, ThreeSatProblem> for KSatToThreeSatReduction {
-    fn reverse_reduce_solution(&self, problem: &KSatProblem, solution: SatSolution) -> SatSolution {
+impl SolutionReductionReverser<SatSolution, KSatProblem, SatSolution, ThreeSatProblem> for KSatToThreeSatSolutionReductionReverser {
+    fn reverse_reduce_solution(&self, solution: SatSolution) -> SatSolution {
+        let KSatToThreeSatSolutionReductionReverser(og_size) = self;
+        
         match solution {
-            SatSolution::Sat(vars) => {
-                let size = problem.0;
-
-                SatSolution::Sat(vars[..size].to_vec())
-            },
+            SatSolution::Sat(sv) => SatSolution::Sat(sv[..*og_size].to_vec()),
             _ => solution
         }
     }

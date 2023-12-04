@@ -1,12 +1,13 @@
 mod matrix;
 mod problem;
 mod error;
+mod utils;
 
 use std::{io::{self}, fs::File, path::PathBuf, thread::available_parallelism};
 use clap::Parser;
 use log::{info, set_max_level, LevelFilter, debug, log_enabled, trace, error};
 
-use crate::problem::{sat::ksat::KSatProblem, reductions::{ksat_to_qubo::KSatToQuboReduction, Reduction, SolutionReversibleReduction}, Problem};
+use crate::problem::{sat::ksat::KSatProblem, reductions::{ksat_to_qubo::KSatToQuboReduction, Reduction}, Problem};
 
 #[cfg(test)]
 mod tests {
@@ -41,22 +42,32 @@ mod tests {
 
 #[derive(Parser)]
 struct SolverCli {
-    #[arg(short='j')]
+    /// Do not log anything; Overrides verbose
+    #[arg(short='q', long="quiet")]
+    quiet: bool,
+    /// The maximum number of parallel workers allowed to be spawned; Defaults to number of logical processors
+    #[arg(short='j', long="jobs")]
     jobs: Option<usize>,
+    /// The file to read. If not provided it defaults to STDIN
     #[arg()]
     file: Option<PathBuf>,
-    #[arg(short='v', action = clap::ArgAction::Count)]
+    /// Logs more information
+    #[arg(short='v', long="verbose", action = clap::ArgAction::Count)]
     verbose: u8,
 }
 
 fn main() -> Result<(), error::Error> {
     let args = SolverCli::parse();
 
-    let verbosity = match args.verbose {
-        0 => LevelFilter::Off,
-        1 => LevelFilter::Info,
-        2 => LevelFilter::Debug,
-        _ => LevelFilter::Trace
+    let verbosity = if args.quiet {
+        LevelFilter::Off
+    } else {
+        match args.verbose {
+            0 => LevelFilter::Error,
+            1 => LevelFilter::Info,
+            2 => LevelFilter::Debug,
+            _ => LevelFilter::Trace
+        }
     };
 
     simple_logger::SimpleLogger::new().init().unwrap();
@@ -64,13 +75,19 @@ fn main() -> Result<(), error::Error> {
 
     trace!("Current Verbosity is {}", verbosity);
 
-    let n_jobs = match args.jobs {
+    let njobs = match args.jobs {
         Some(x) => x,
         None => available_parallelism()
             .map_err(|x| error::Error { kind: error::ErrorKind::IO(x.kind())})?.get(),
     };
 
-    info!("Running on {} threads", n_jobs);
+    info!("Running on {} threads", njobs);
+    
+    {
+        let mut w = utils::NUMBER_OF_WORKERS.write()
+            .expect("Failed to aquire write lock for global Worker Count; Worker Count is poisoned!");
+        *w = njobs;
+    }
 
     let file: Box<dyn io::Read> = match args.file {
         Some(x) => Box::new(File::open(x).unwrap()),
@@ -84,7 +101,7 @@ fn main() -> Result<(), error::Error> {
     debug!("Input generated: {:?}", problem);
     
     // let solution = problem.solve();
-    let qubo_problem = KSatToQuboReduction::Choi.reduce_problem(&problem);
+    let (qubo_problem, solution_reverser) = KSatToQuboReduction::Choi.reduce_problem(problem.clone());
     debug!("Reduction produced: {}", qubo_problem);
 
     let qubo_solution = qubo_problem.solve();
@@ -94,13 +111,14 @@ fn main() -> Result<(), error::Error> {
         debug!("Solution (evaluation: {}) {:?}", eval, qubo_solution);
     }
 
-    let solution = KSatToQuboReduction::Choi.reverse_reduce_solution(&problem, qubo_solution);
+    let solution = solution_reverser.reverse_reduce_solution(qubo_solution);
     
-    if log_enabled!(log::Level::Error) && problem.evaluate_solution(&solution) {
+    if log_enabled!(log::Level::Error) && !problem.evaluate_solution(&solution) {
         error!("Solution found is invalid!")
     }
 
     println!("{:?}", solution);
+    // Sat ¬0 1 ¬2
 
     Ok(())
 }

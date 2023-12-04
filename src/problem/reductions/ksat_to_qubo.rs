@@ -1,4 +1,6 @@
-use crate::problem::{sat::{SatSolution, ksat::KSatProblem}, qubo::{QuboProblem, QuboSolution}};
+use log::debug;
+
+use crate::problem::{sat::{SatSolution, ksat::KSatProblem, threesat::ThreeSatProblem}, qubo::{QuboProblem, QuboSolution}};
 
 use super::{*, sat_to_qubo::ThreeSatToQuboReduction, ksat_to_threesat::KSatToThreeSatReduction};
 
@@ -20,13 +22,30 @@ pub enum KSatToQuboReduction {
     Nuesslein2023,
 }
 
+pub enum KSatToQuboSolutionReductionReverser {
+    Choi {
+        threesat_reverser: Box<dyn SolutionReductionReverser<SatSolution, KSatProblem, SatSolution, ThreeSatProblem>>,
+        qubo_reverser: Box<dyn SolutionReductionReverser<SatSolution, ThreeSatProblem, QuboSolution, QuboProblem>>
+    },
+    Novel,
+    Chancellor,
+    Nuesslein2022,
+    Nuesslein2023,
+}
+
 impl Reduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboReduction {
-    fn reduce_problem(&self, problem: &KSatProblem) -> QuboProblem {
+    fn reduce_problem(&self, problem: KSatProblem) -> (QuboProblem, Box<dyn SolutionReductionReverser<SatSolution, KSatProblem, QuboSolution, QuboProblem>>) {
         match self {
             KSatToQuboReduction::Choi => {
-                let threesat_problem = KSatToThreeSatReduction.reduce_problem(problem);
+                let (threesat_problem, threesat_reverser) = KSatToThreeSatReduction.reduce_problem(problem);
 
-                ThreeSatToQuboReduction::Choi.reduce_problem(&threesat_problem)
+                debug!("Choi reduction part 1 produced: {:?}", threesat_problem);
+
+                let (qubo_problem, qubo_reverser) = ThreeSatToQuboReduction::Choi.reduce_problem(threesat_problem);
+
+                debug!("Choi reduction part 2 produced: {}", qubo_problem);
+
+                (qubo_problem, Box::new(KSatToQuboSolutionReductionReverser::Choi { threesat_reverser, qubo_reverser}))
             },
             KSatToQuboReduction::Novel => todo!(),
             KSatToQuboReduction::Chancellor => todo!(),
@@ -36,20 +55,18 @@ impl Reduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQu
     }
 }
 
-impl SolutionReversibleReduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboReduction {
-    fn reverse_reduce_solution(&self, problem: &KSatProblem, solution: QuboSolution) -> SatSolution {
+impl SolutionReductionReverser<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboSolutionReductionReverser {
+    fn reverse_reduce_solution(&self, solution: QuboSolution) -> SatSolution {
         match self {
-            KSatToQuboReduction::Choi => {
-                let threesat_problem = KSatToThreeSatReduction.reduce_problem(problem);
-                
-                let threesat_solution = ThreeSatToQuboReduction::Choi.reverse_reduce_solution(&threesat_problem, solution);
+            KSatToQuboSolutionReductionReverser::Choi {qubo_reverser, threesat_reverser} => {
+                let threesat_solution = qubo_reverser.reverse_reduce_solution(solution);
 
-                KSatToThreeSatReduction.reverse_reduce_solution(problem, threesat_solution)
+                threesat_reverser.reverse_reduce_solution(threesat_solution)
             },
-            KSatToQuboReduction::Novel => todo!(),
-            KSatToQuboReduction::Chancellor => todo!(),
-            KSatToQuboReduction::Nuesslein2022 => todo!(),
-            KSatToQuboReduction::Nuesslein2023 => todo!(),
+            KSatToQuboSolutionReductionReverser::Novel => todo!(),
+            KSatToQuboSolutionReductionReverser::Chancellor => todo!(),
+            KSatToQuboSolutionReductionReverser::Nuesslein2022 => todo!(),
+            KSatToQuboSolutionReductionReverser::Nuesslein2023 => todo!(),
         }
     }
 }

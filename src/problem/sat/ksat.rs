@@ -4,6 +4,7 @@ use regex::Regex;
 use crate::{error::{Error, ErrorKind}, problem::Problem};
 use super::{SatSolution, SatVariable};
 
+#[derive(Clone)]
 pub struct KSatProblem(pub usize, pub Vec<Vec<SatVariable>>);
 
 impl KSatProblem {
@@ -73,7 +74,7 @@ impl KSatProblem {
     
         clauses.iter().all(|clause| {
             clause.iter().any(|&SatVariable(is_pos, number)| {
-                !(is_pos ^ solution_vector[number])
+               !(is_pos ^ solution_vector[number])
             })
         })
     }

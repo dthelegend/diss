@@ -3,7 +3,7 @@ mod problem;
 mod error;
 mod utils;
 
-use std::{io::{self}, fs::File, path::PathBuf, thread::available_parallelism};
+use std::{io::{self}, fs::File, path::PathBuf, thread::available_parallelism, time::Instant};
 use clap::Parser;
 use log::{info, set_max_level, LevelFilter, debug, log_enabled, trace, error};
 
@@ -99,10 +99,14 @@ fn main() -> Result<(), error::Error> {
     let problem = KSatProblem::from_benchmark_file(buf_reader)?;
 
     debug!("Input generated: {:?}", problem);
+
+    let reduction_start = Instant::now();
     
     // let solution = problem.solve();
     let (qubo_problem, solution_reverser) = KSatToQuboReduction::Choi.reduce_problem(problem.clone());
-    debug!("Reduction produced: {}", qubo_problem);
+    if log_enabled!(log::Level::Info) {
+        info!("Reduction took {:?}", reduction_start.elapsed());
+    }
 
     let qubo_solution = qubo_problem.solve();
 

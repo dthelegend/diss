@@ -1,18 +1,20 @@
 use std::{fmt::Debug, ops::{Index, IndexMut}};
 
-pub struct SparseMatrixElement<T: Sized> {
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator, IntoParallelRefMutIterator};
+
+pub struct SparseMatrixElement<T: Sized + PartialEq + Send + Sync> {
     pub(crate) row: usize,
     pub(crate) column: usize,
     pub(crate) value: T
 }
 
-pub struct SparseMatrix<T: Sized + PartialEq> {
+pub struct SparseMatrix<T: Sized + PartialEq + Send + Sync> {
     pub(crate) shape: (usize, usize),
     pub(crate) elements: Vec<SparseMatrixElement<T>>,
     pub(crate) default_value: T
 }
 
-impl <T: PartialEq> SparseMatrix<T> {
+impl <T: PartialEq  + Send + Sync> SparseMatrix<T> {
     /// Creates a new [`SparseMatrix<T>`] with the default value specified.
     pub fn new_with_default(shape: (usize, usize), default: T) -> Self {
         SparseMatrix { shape, elements: Vec::new(), default_value: default }
@@ -67,23 +69,23 @@ impl <T: PartialEq> SparseMatrix<T> {
     }
 }
 
-impl <T:PartialEq + Default> SparseMatrix<T> {
+impl <T:PartialEq + Default + Send + Sync> SparseMatrix<T> {
     /// Creates a new [`SparseMatrix<T>`].
     pub fn new(shape: (usize, usize)) -> Self {
         Self::new_with_default(shape, Default::default())
     }
 }
 
-impl <T: PartialEq + Copy> IndexMut<(usize, usize)> for SparseMatrix<T> {
+impl <T: PartialEq + Copy + Send + Sync> IndexMut<(usize, usize)> for SparseMatrix<T> {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
-        let SparseMatrix { default_value, shape: (shape_x, shape_y), .. } = self;
+        let SparseMatrix { default_value, shape: (shape_x, shape_y), elements } = self;
         let (x, y) = index;
 
         assert!(x < *shape_x && y < *shape_y, "Index ({},{}) is out of bounds for matrix of shape ({},{})!", x, y, shape_x, shape_y);
     
-        for (i, el) in self.elements.iter().enumerate() {
+        for (i, el) in elements.iter().enumerate() {
             if el.row == x && el.column == y {
-                return &mut self.elements[i].value;
+                return &mut elements[i].value;
             }
         }
 
@@ -93,15 +95,15 @@ impl <T: PartialEq + Copy> IndexMut<(usize, usize)> for SparseMatrix<T> {
             value: *default_value
         };
 
-        self.elements.push(new_element);
+        elements.push(new_element);
 
-        &mut self.elements.last_mut()
+        &mut elements.last_mut()
             .expect("Just populated with a new element! List cannot be empty.")
             .value
     }
 }
 
-impl <T: PartialEq> Index<(usize, usize)> for SparseMatrix<T> {
+impl <T: PartialEq + Send + Sync> Index<(usize, usize)> for SparseMatrix<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
@@ -110,13 +112,13 @@ impl <T: PartialEq> Index<(usize, usize)> for SparseMatrix<T> {
 
         assert!(x < *shape_x && y < *shape_y, "Index ({},{}) is out of bounds for matrix of shape ({},{})!", x, y, shape_x, shape_y);
 
-        elements.iter().find(|SparseMatrixElement {row, column, .. }| *row == x && *column == y)
+        elements.par_iter().find_any(|SparseMatrixElement {row, column, .. }| *row == x && *column == y)
             .map(|x| &x.value)
             .unwrap_or(default_value)
     }
 }
 
-impl <T: PartialEq + Debug> Debug for SparseMatrix<T> {
+impl <T: PartialEq + Debug + Send + Sync> Debug for SparseMatrix<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "SparseMatrix {:?}", self.shape)?;
 

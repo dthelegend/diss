@@ -1,4 +1,5 @@
 use std::{io, num, fmt::Debug};
+use log::{log_enabled, debug};
 use regex::Regex;
 
 use crate::{error::{Error, ErrorKind}, problem::Problem};
@@ -74,9 +75,15 @@ impl KSatProblem {
         assert!(*nbvars == solution_vector.len(), "Solution vector is not same size as number of clauses");
     
         clauses.iter().all(|clause| {
-            clause.iter().any(|&SatVariable(is_pos, number)| {
+            let x = clause.iter().any(|&SatVariable(is_pos, number)| {
                !(is_pos ^ solution_vector[number])
-            })
+            });
+
+            if !x {
+                debug!("Clause violated! {:?}", clause)
+            }
+
+            x
         })
     }
 }

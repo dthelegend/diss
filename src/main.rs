@@ -102,8 +102,8 @@ fn main() -> Result<(), error::Error> {
 
     let reduction_start = Instant::now();
 
-    let reduction = KSatToQuboReduction::Choi;
-    // let reduction = KSatToQuboReduction::Chancellor;
+    // let reduction = KSatToQuboReduction::Choi;
+    let reduction = KSatToQuboReduction::Chancellor;
 
     let (qubo_problem, solution_reverser) = reduction.reduce_problem(problem.clone());
     if log_enabled!(log::Level::Info) {

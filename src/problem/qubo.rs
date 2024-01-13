@@ -1,5 +1,5 @@
 use std::{ops::{Index, IndexMut}, iter::zip, fmt::{Debug, Display}};
-use log::{trace, log_enabled};
+use log::trace;
 use crate::matrix;
 use rand::{Rng, thread_rng, distributions::{weighted::WeightedIndex, Distribution}};
 
@@ -35,7 +35,7 @@ impl Problem<QuboSolution> for QuboProblem {
             QuboProblemBackend::DiverseAdaptiveBulkSearch => todo!(),
             QuboProblemBackend::SimulatedAnnealing => {
                 // Could likely be improved with a solution cache, but works well enough for demonstrative purposes
-                const K_MAX: i32 = 10000;
+                const K_MAX: i32 = 100000;
 
                 let mut solution = {
                     let rand_solution = QuboSolution((0..self.get_size()).map(|_| thread_rng().gen_bool(0.5)).collect());
@@ -45,10 +45,10 @@ impl Problem<QuboSolution> for QuboProblem {
                 };
                 let mut min_solution = solution.clone();
 
-                for k in (0..K_MAX).rev() {
+                for k in (1..K_MAX).rev() {
                     // Linear cooling schedule.
                     // TODO: Swap for a more robust cooling schedule
-                    let temperature: f64 = (f64::from(k)) / f64::from(K_MAX);
+                    let temperature: f64 = f64::ln(f64::from(k)) / f64::ln(f64::from(K_MAX));
 
                     trace!("Current solution evaluation: {}", solution.1);
                     trace!("Current min solution evaluation: {}", min_solution.1);

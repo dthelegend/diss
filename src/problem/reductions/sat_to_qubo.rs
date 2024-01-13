@@ -17,8 +17,8 @@ impl Reduction<SatSolution, ThreeSatProblem, QuboSolution, QuboProblem> for Thre
     fn reduce_problem(&self, problem: ThreeSatProblem) -> (QuboProblem, Box<dyn SolutionReductionReverser<SatSolution, ThreeSatProblem, QuboSolution, QuboProblem>>) {
         match self {
             ThreeSatToQuboReduction::Choi => {
-                const EDGE_WEIGHT: i32 = 10;
                 const VERTEX_WEIGHT: i32 = -1;
+                const EDGE_WEIGHT: i32 = 2 * VERTEX_WEIGHT;
                 let ThreeSatProblem( size , threesatclauses) = problem;
 
                 let mut reduced_problem = QuboProblem::new_with_backend(threesatclauses.len() * 3, QuboProblemBackend::SimulatedAnnealing);
@@ -63,8 +63,9 @@ impl SolutionReductionReverser<SatSolution, ThreeSatProblem, QuboSolution, QuboP
                 // NB: For the MIS Problem, the goal is to get an MIS with |V| = threesatclauses.len()
                 
                 // There must be exactly one true statement per clause for our solution to be SAT
+                // THIS HAS TO HOLD or we know has definitely not found a solution.
                 if !x.chunks(3).map(|f| f.iter().filter(|f| **f).count()).all(|f| f == 1) {
-                    //  Unknown as without an exhaustive search of the solution space, we cannot know if
+                    // Unknown as without an exhaustive search of the solution space, we cannot know if
                     // the problem is truly UNSAT. SA as implemented doesn't produce a way to track this
                     return SatSolution::Unknown;
                 }

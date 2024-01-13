@@ -56,8 +56,8 @@ impl <T: PartialEq  + Send + Sync> SparseMatrix<T> {
         None
     }
 
-    pub fn values(&self) -> impl Iterator<Item = &SparseMatrixElement<T>> {
-        self.elements.iter()
+    pub fn values(&self) -> &Vec<SparseMatrixElement<T>> {
+        &self.elements
     }
 
     pub fn purge(&mut self) {

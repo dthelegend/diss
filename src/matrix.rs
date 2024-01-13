@@ -1,6 +1,6 @@
 use std::{fmt::Debug, ops::{Index, IndexMut}};
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator, IntoParallelRefMutIterator};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 pub struct SparseMatrixElement<T: Sized + PartialEq + Send + Sync> {
     pub(crate) row: usize,

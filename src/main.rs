@@ -101,9 +101,11 @@ fn main() -> Result<(), error::Error> {
     debug!("Input generated: {:?}", problem);
 
     let reduction_start = Instant::now();
-    
-    // let solution = problem.solve();
-    let (qubo_problem, solution_reverser) = KSatToQuboReduction::Choi.reduce_problem(problem.clone());
+
+    let reduction = KSatToQuboReduction::Choi;
+    // let reduction = KSatToQuboReduction::Chancellor;
+
+    let (qubo_problem, solution_reverser) = reduction.reduce_problem(problem.clone());
     if log_enabled!(log::Level::Info) {
         info!("Reduction took {:?}", reduction_start.elapsed());
     }

@@ -64,8 +64,8 @@ impl SolutionReductionReverser<SatSolution, ThreeSatProblem, QuboSolution, QuboP
                 
                 // There must be exactly one true statement per clause for our solution to be SAT
                 if !x.chunks(3).map(|f| f.iter().filter(|f| **f).count()).all(|f| f == 1) {
-                    // Unknown as without an exhaustive search of the solution space a couple more times to be sure we cannot know if
-                    // The problem is truly UNSAT and SA as implemented doesn't produce a way to track this
+                    //  Unknown as without an exhaustive search of the solution space, we cannot know if
+                    // the problem is truly UNSAT. SA as implemented doesn't produce a way to track this
                     return SatSolution::Unknown;
                 }
         

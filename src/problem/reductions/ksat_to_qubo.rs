@@ -1,6 +1,6 @@
 use log::debug;
 
-use crate::problem::{sat::{SatSolution, ksat::KSatProblem, threesat::ThreeSatProblem}, qubo::{QuboProblem, QuboSolution}};
+use crate::problem::{sat::{SatSolution, ksat::KSatProblem, threesat::ThreeSatProblem, SatVariable}, qubo::{QuboProblem, QuboSolution}};
 
 use super::{*, sat_to_qubo::ThreeSatToQuboReduction, ksat_to_threesat::KSatToThreeSatReduction};
 
@@ -29,7 +29,7 @@ pub enum KSatToQuboSolutionReductionReverser {
         qubo_reverser: Box<dyn SolutionReductionReverser<SatSolution, ThreeSatProblem, QuboSolution, QuboProblem>>
     },
     Novel,
-    Chancellor,
+    Chancellor(usize),
     Nuesslein2022,
     Nuesslein2023,
 }
@@ -49,7 +49,57 @@ impl Reduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQu
                 (qubo_problem, Box::new(KSatToQuboSolutionReductionReverser::Choi { threesat_reverser, qubo_reverser}))
             },
             KSatToQuboReduction::Novel => todo!(),
-            KSatToQuboReduction::Chancellor => todo!(),
+            KSatToQuboReduction::Chancellor => {
+                let KSatProblem(nb_vars, clause_list) = problem;
+                
+                let num_ancillae: usize = clause_list.iter().map(|x| x.len()).sum();
+
+                debug!("Chancellor reduction requires {} ancillae", num_ancillae);
+                
+                let mut q_matrix = QuboProblem::new(nb_vars + num_ancillae);
+                
+                // Coupling Strength in the ising model
+                const J : i32 = 100;
+                // Site Strength in the ising model
+                const H : i32 = -J;
+                // Not sure?
+                const G : i32 = 4;
+
+                let mut new_var_counter = 0;
+                for clause in clause_list {
+                    // \sum^k_{i=1}
+                    for (i_index, i_var) in clause.iter().enumerate() {
+                        // \sum^{i-1}_{j=1}
+                        for j_var in &clause[0..i_index] {
+                            // J c(i) c(j)\sigma^z_i\sigma^z_j
+                            let sign: i32 = if i_var.0 ^ j_var.0 { 1 } else { -1 };
+                            
+                            q_matrix[(i_var.1, j_var.1)] += - sign * J;
+                        }
+    
+                        // h c(i)\sigma^z_i
+                        q_matrix[(i_var.1, i_var.1)] = H * (if i_var.0 { 1 } else { -1 });
+
+                        for j_ancillary in 0..clause.len() {
+                            // J^a c(i)\sigma^z_i\sigma^z_{j,a}
+                            let new_variable = nb_vars + new_var_counter;
+                            q_matrix[(i_var.1, new_variable)] += J * (if i_var.0 { 1 } else { -1 });
+                            
+                            // h_i^a \sigma^z_{j,a}
+                            let q_i = if j_ancillary == 0 { G / 2 } else { 0 };
+                            let h_a_i = -J * (2 * j_ancillary as i32 - clause.len() as i32) + q_i;
+                            q_matrix[(new_variable, new_variable)] += h_a_i;
+                        }
+                    }
+                            
+                    new_var_counter += clause.len();
+                }
+                assert_eq!(num_ancillae, new_var_counter);
+
+                debug!("Chancellor reduction produced: {}", q_matrix);
+
+                (q_matrix, Box::new(KSatToQuboSolutionReductionReverser::Chancellor(nb_vars)))
+            },
             KSatToQuboReduction::Nuesslein2022 => todo!(),
             KSatToQuboReduction::Nuesslein2023 => todo!(),
         }
@@ -65,7 +115,9 @@ impl SolutionReductionReverser<SatSolution, KSatProblem, QuboSolution, QuboProbl
                 threesat_reverser.reverse_reduce_solution(threesat_solution)
             },
             KSatToQuboSolutionReductionReverser::Novel => todo!(),
-            KSatToQuboSolutionReductionReverser::Chancellor => todo!(),
+            KSatToQuboSolutionReductionReverser::Chancellor(nb_vars) => {
+                SatSolution::Sat(solution.0[0..*nb_vars].to_vec())
+            },
             KSatToQuboSolutionReductionReverser::Nuesslein2022 => todo!(),
             KSatToQuboSolutionReductionReverser::Nuesslein2023 => todo!(),
         }

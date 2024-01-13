@@ -22,6 +22,7 @@ pub struct QuboProblem {
     problem_backend: QuboProblemBackend
 }
 
+#[derive(Clone)]
 pub struct QuboSolution(pub Vec<bool>);
 
 impl Problem<QuboSolution> for QuboProblem {
@@ -34,21 +35,28 @@ impl Problem<QuboSolution> for QuboProblem {
             QuboProblemBackend::DiverseAdaptiveBulkSearch => todo!(),
             QuboProblemBackend::SimulatedAnnealing => {
                 // Could likely be improved with a solution cache, but works well enough for demonstrative purposes
-                const K_MAX: i32 = 1000;
+                const K_MAX: i32 = 10000;
 
-                let mut solution = QuboSolution((0..self.get_size()).map(|_| thread_rng().gen_bool(0.5)).collect());
+                let mut solution = {
+                    let rand_solution = QuboSolution((0..self.get_size()).map(|_| thread_rng().gen_bool(0.5)).collect());
+                    let sol_eval = self.evaluate_solution(&rand_solution);
+
+                    (rand_solution, sol_eval)
+                };
+                let mut min_solution = solution.clone();
 
                 for k in (0..K_MAX).rev() {
-                    if log_enabled!(log::Level::Trace) {
-                        trace!("Current solution (evaluation: {}): {:?}", self.evaluate_solution(&solution), solution);
-                    }
-
+                    // Linear cooling schedule.
+                    // TODO: Swap for a more robust cooling schedule
                     let temperature: f64 = (f64::from(k)) / f64::from(K_MAX);
+
+                    trace!("Current solution evaluation: {}", solution.1);
+                    trace!("Current min solution evaluation: {}", min_solution.1);
                     trace!("Current Temperature: {}", temperature);
 
-                    let (mut neighbours, evals) : (Vec<_>, Vec<_>) = (0..solution.0.len())
+                    let (mut neighbours, evals) : (Vec<_>, Vec<_>) = (0..solution.0.0.len())
                         .map(|i| {
-                            let mut vec = solution.0.clone();
+                            let mut vec = solution.0.0.clone();
                             vec[i] = !vec[i];
                             QuboSolution(vec)
                         })
@@ -58,10 +66,20 @@ impl Problem<QuboSolution> for QuboProblem {
                         })
                         .unzip();
 
-                    trace!("{:?}", evals);
-
-                    let min_eval = evals.iter().min()
+                    let (min_neighbour, min_eval) = evals.iter().enumerate().min_by_key(|x| x.1)
                         .expect("Neighbours should never be is empty unless solution is empty, and solution should never be empty!");
+                    
+                    if *min_eval < min_solution.1 {
+                        min_solution = (neighbours[min_neighbour].clone(), *min_eval);
+                    }
+                    
+                    // Stop Condition
+                    // Solution will never improve if the temperature is 0 and the only options are increasing.
+                    // This means we are trapped in a local minima
+                    if *min_eval > solution.1 && temperature <= 0.0 {
+                        break;
+                    }
+
                     let max_eval = evals.iter().max()
                         .expect("Neighbours should never be is empty unless solution is empty, and solution should never be empty!");
                     let range = min_eval - max_eval;
@@ -83,14 +101,14 @@ impl Problem<QuboSolution> for QuboProblem {
                     let mut rng = thread_rng();
                     let chosen_neighbour_number = dist.sample(&mut rng);
 
-                    solution = if evals[chosen_neighbour_number] < self.evaluate_solution(&solution) || rng.gen_bool(temperature) {
-                        neighbours.swap_remove(chosen_neighbour_number)
+                    solution = if evals[chosen_neighbour_number] < solution.1 || rng.gen_bool(temperature) {
+                        (neighbours.swap_remove(chosen_neighbour_number), evals[chosen_neighbour_number])
                     } else {
                         solution
                     };
                 }
 
-                solution
+                min_solution.0
             },
         }
     }

@@ -1,10 +1,10 @@
 mod problem;
 
-use std::{io::{self}, fs::File, path::PathBuf, time::Instant};
+use std::{io::{self}, fs::File, path::PathBuf};
 use std::error::Error;
 use std::io::Read;
 use clap::Parser;
-use log::{info, set_max_level, LevelFilter, debug, log_enabled, trace, error};
+use log::{info, set_max_level, LevelFilter, debug};
 use problem::sat::KSatProblem;
 use crate::problem::qubo::solver::{QuboSolver, SimulatedAnnealer};
 use crate::problem::sat::reducer::{Choi, QuboToSatReduction};
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         None => {
             debug!("Reading problem from STDIN");
 
-            Box::new(std::io::stdin())
+            Box::new(io::stdin())
         },
         Some(path) => {
             debug!("Reading problem from file \"{}\"", path.to_string_lossy());

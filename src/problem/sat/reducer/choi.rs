@@ -1,4 +1,3 @@
-use nalgebra_sparse::CooMatrix;
 use crate::problem::qubo::{QuboProblem, QuboSolution};
 use crate::problem::sat::reducer::QuboToSatReduction;
 use crate::problem::sat::{KSatProblem, SatSolution};

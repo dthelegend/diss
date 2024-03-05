@@ -1,5 +1,5 @@
-use log::{debug, trace};
-use nalgebra::{DVector, SVector, Vector3};
+use log::{trace};
+
 use rand::rngs::ThreadRng;
 use rand::thread_rng;
 use crate::problem::qubo::{QuboProblem, QuboSolution};
@@ -19,9 +19,7 @@ impl <Rng> SimulatedAnnealer<Rng> where Rng : rand::Rng {
 
 impl SimulatedAnnealer<ThreadRng> {
     pub fn new_with_thread_rng() -> Self {
-        Self {
-            rng: thread_rng()
-        }
+        Self::new_with_rng(thread_rng())
     }
 }
 

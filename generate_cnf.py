@@ -1,5 +1,6 @@
 import random
 
+
 def generate_cnf(num_variables, num_clauses, max_literals_per_clause):
     cnf = []
 
@@ -17,14 +18,16 @@ def generate_cnf(num_variables, num_clauses, max_literals_per_clause):
 
     return cnf
 
+
 def print_dimacs(cnf):
     print("p cnf {} {}".format(num_variables, num_clauses))
     for clause in cnf:
         print(" ".join(map(str, clause)), "0")
 
+
 if __name__ == "__main__":
     num_variables = 20  # Change this to the desired number of variables
-    num_clauses = 100    # Change this to the desired number of clauses
+    num_clauses = 100  # Change this to the desired number of clauses
     max_literals_per_clause = 20  # Change this to the desired maximum number of literals per clause
 
     random.seed(57)  # Set seed for reproducibility

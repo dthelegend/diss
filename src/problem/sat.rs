@@ -19,13 +19,13 @@ pub enum SatSolution {
 pub struct SatVariable(pub bool, pub usize);
 
 impl Debug for SatVariable {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "KSatVariable {}{}", if self.0 {""} else {"¬"}, self.1)
     }
 }
 
 impl Debug for SatSolution {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Sat(arg0) => write!(f, "Sat ({})", arg0.iter().enumerate().map(|(i, x)| format!("{}{}", if *x == 1 {""} else {"¬"}, i)).collect::<Vec<String>>().join(" ")),
             Self::Unsat => write!(f, "Unsat"),
@@ -35,7 +35,7 @@ impl Debug for SatSolution {
 }
 
 impl Display for SatSolution {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Sat(_) => write!(f, "SAT"),
             Self::Unsat => write!(f, "UNSAT"),
@@ -146,7 +146,7 @@ impl KSatProblem {
 }
 
 impl Debug for KSatProblem {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let x = self.clauses.iter()
             .map(|clause|
                 format!("({})", clause.iter()

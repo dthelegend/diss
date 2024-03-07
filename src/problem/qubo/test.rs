@@ -17,7 +17,7 @@ fn check_evaluation() {
         CsrMatrix::from(&coo_initializer)
     };
 
-    let sut = QuboProblem(sut_internal.into());
+    let sut = QuboProblem::try_from_q_matrix(sut_internal.into()).expect("Matrix is supposedly valid");
     let sut_solution = QuboSolution(DVector::from_column_slice(&[1, 1, 1]));
 
     assert_eq!(7, sut.evaluate(&sut_solution));

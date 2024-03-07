@@ -4,10 +4,11 @@ use std::{io::{self}, fs::File, path::PathBuf};
 use std::error::Error;
 use std::io::Read;
 use clap::Parser;
-use log::{info, set_max_level, LevelFilter, debug};
+use log::{info, set_max_level, LevelFilter, debug, error};
 use problem::sat::KSatProblem;
 use crate::problem::qubo::solver::{QuboSolver, SimulatedAnnealer};
 use crate::problem::sat::reducer::{Choi, QuboToSatReduction};
+use crate::problem::sat::SatSolution;
 
 #[derive(Parser)]
 struct SolverCli {
@@ -60,13 +61,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (qubo_problem, up_modeller) = Choi::reduce(&problem);
 
-    let mut solver = SimulatedAnnealer::new_with_thread_rng();
+    let mut solver = SimulatedAnnealer::new_with_thread_rng(100_000);
 
     let qubo_solution = solver.solve(qubo_problem);
 
-    let solution = up_modeller.up_model(qubo_solution);
+    let mut solution = up_modeller.up_model(qubo_solution);
 
     debug!("{:?}", solution);
+
+    if !problem.evaluate(&solution){
+        error!("Solution that was generated does not satisfy the problem!");
+        solution = SatSolution::Unknown
+    }
 
     println!("{}", solution);
 

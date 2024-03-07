@@ -1,13 +1,14 @@
 pub mod reducer;
 
-use std::error::Error;
 use std::fmt::{Debug, Formatter};
 use std::fmt::Display;
 use std::io::{BufRead, BufReader, Read};
-use log::debug;
+use log::{debug, trace};
 use nalgebra::{DVector};
 use regex::Regex;
+use thiserror::Error;
 
+#[derive(Clone)]
 pub enum SatSolution {
     Sat(DVector<u32>),
     Unsat,
@@ -46,19 +47,17 @@ impl Display for SatSolution {
 
 pub struct KSatProblem {
     pub nb_vars: usize,
-    pub clauses: Vec<Vec<SatVariable>>,
+    pub clause_list: Vec<Vec<SatVariable>>,
 }
 
-#[derive(Debug)]
-pub struct KSatProblemError {}
-
-impl Display for KSatProblemError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "KSatProblemError")
-    }
-}
-
-impl Error for KSatProblemError {
+#[derive(Error, Debug)]
+pub enum KSatProblemError {
+    #[error("Error reading the file")]
+    FileError(#[from] std::io::Error),
+    #[error("Incorrect File Header")]
+    InvalidHeader,
+    #[error("Invalid variable declared in file")]
+    InvalidVariable
 }
 
 impl KSatProblem {
@@ -70,7 +69,7 @@ impl KSatProblem {
         while {
             let next_line_result = line_result_iterator.next();
             next_line = next_line_result.expect("File missing instance header")
-                .map_err(|e| KSatProblemError {})?;
+                .map_err(KSatProblemError::FileError)?;
 
             next_line.starts_with('c')
         }  {
@@ -81,18 +80,18 @@ impl KSatProblem {
         let benchmark_header_re = Regex::new(r"^p cnf (?<nb_var>\d+) (?<nb_clauses>\d+)$")
             .expect("Failed to compile the benchmark header RegEx!");
         let captures = benchmark_header_re.captures(next_line.as_str())
-            .ok_or(KSatProblemError {})?;
+            .ok_or(KSatProblemError::InvalidHeader)?;
 
         let nb_clauses: usize = captures["nb_clauses"].parse()
-            .map_err(|e| KSatProblemError {})?;
+            .or(Err(KSatProblemError::InvalidHeader))?;
         let nb_var: usize = captures["nb_var"].parse()
-            .map_err(|e| KSatProblemError {})?;
+            .or(Err(KSatProblemError::InvalidHeader))?;
 
         let mut clauses = Vec::with_capacity(nb_clauses);
 
         for line_result in line_result_iterator.take(nb_clauses) {
             next_line = line_result
-                .map_err(|e| KSatProblemError {})?;
+                .map_err(KSatProblemError::FileError)?;
 
             let mut clause_line: Vec<isize> = next_line
                 .split(' ')
@@ -110,7 +109,7 @@ impl KSatProblem {
                 .collect();
 
             if clause.iter().any(|f| f.1 >= nb_var) {
-                return Err(KSatProblemError {});
+                return Err(KSatProblemError::InvalidVariable);
             }
 
             clauses.push(clause);
@@ -118,12 +117,12 @@ impl KSatProblem {
 
         Ok(KSatProblem {
             nb_vars: nb_var,
-            clauses
+            clause_list: clauses
         })
     }
 
     pub fn evaluate(&self, solution: &SatSolution) -> bool {
-        let KSatProblem { nb_vars, clauses } = &self;
+        let KSatProblem { nb_vars, clause_list: clauses } = &self;
         let SatSolution::Sat(solution_vector) = solution else {
             // Solutions other than SAT are considered to be invalid solutions for a problem for simplicity
             return true;
@@ -138,6 +137,8 @@ impl KSatProblem {
 
             if !x {
                 debug!("Clause violated! {:?}", clause)
+            } else {
+                trace!("Verified clause {:?}", clause)
             }
 
             x
@@ -147,7 +148,7 @@ impl KSatProblem {
 
 impl Debug for KSatProblem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let x = self.clauses.iter()
+        let x = self.clause_list.iter()
             .map(|clause|
                 format!("({})", clause.iter()
                     .map(|SatVariable(is_pos, number)|

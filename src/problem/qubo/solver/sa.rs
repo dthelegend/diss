@@ -1,21 +1,27 @@
 use log::{debug, trace};
-use nalgebra::{DVector};
+use nalgebra::DVector;
 
+use crate::problem::qubo::solver::QuboSolver;
+use crate::problem::qubo::{QuboProblem, QuboSolution};
 use rand::rngs::ThreadRng;
 use rand::thread_rng;
-use crate::problem::qubo::{QuboProblem, QuboSolution};
-use crate::problem::qubo::solver::QuboSolver;
 
-pub struct SimulatedAnnealer<Rng> where Rng : rand::Rng {
+pub struct SimulatedAnnealer<Rng>
+where
+    Rng: rand::Rng,
+{
     rng: Rng,
-    max_iterations: usize
+    max_iterations: usize,
 }
 
-impl <Rng> SimulatedAnnealer<Rng> where Rng : rand::Rng {
+impl<Rng> SimulatedAnnealer<Rng>
+where
+    Rng: rand::Rng,
+{
     pub fn new_with_rng(rng: Rng, max_iterations: usize) -> Self {
         Self {
             rng,
-            max_iterations
+            max_iterations,
         }
     }
 }
@@ -34,10 +40,15 @@ fn acceptance_probability(evaluation: isize, other_evaluation: isize, temperatur
     f64::exp(-(other_evaluation - evaluation) as f64 / temperature)
 }
 
-impl <Rng> QuboSolver for SimulatedAnnealer<Rng> where Rng : rand::Rng {
-
+impl<Rng> QuboSolver for SimulatedAnnealer<Rng>
+where
+    Rng: rand::Rng,
+{
     fn solve(&mut self, qubo_problem: QuboProblem) -> QuboSolution {
-        let mut current_solution = QuboSolution(DVector::from_fn(qubo_problem.get_size(), |_, _| self.rng.gen_range(0..1)));
+        let mut current_solution =
+            QuboSolution(DVector::from_fn(qubo_problem.get_size(), |_, _| {
+                self.rng.gen_range(0..1)
+            }));
         let mut current_evaluation = qubo_problem.evaluate(&current_solution);
 
         let mut best_solution = current_solution.clone();
@@ -63,7 +74,9 @@ impl <Rng> QuboSolver for SimulatedAnnealer<Rng> where Rng : rand::Rng {
                 best_evaluation = random_evaluation;
             }
 
-            if acceptance_probability(current_evaluation, random_evaluation, t) > self.rng.gen_range(0f64..1f64) {
+            if acceptance_probability(current_evaluation, random_evaluation, t)
+                > self.rng.gen_range(0f64..1f64)
+            {
                 current_solution = random_neighbour;
                 current_evaluation = random_evaluation;
             }

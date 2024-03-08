@@ -1,19 +1,23 @@
 mod problem;
 
-use std::{io::{self}, fs::File, path::PathBuf};
-use std::error::Error;
-use std::io::Read;
-use clap::Parser;
-use log::{info, set_max_level, LevelFilter, debug, error};
-use problem::sat::KSatProblem;
-use crate::problem::qubo::solver::{QuboSolver, SimulatedAnnealer};
+use crate::problem::qubo::solver::{ParallelExhaustiveSearch, QuboSolver, SimulatedAnnealer};
 use crate::problem::sat::reducer::{Choi, QuboToSatReduction};
 use crate::problem::sat::SatSolution;
+use clap::Parser;
+use log::{debug, error, info, set_max_level, LevelFilter};
+use problem::sat::KSatProblem;
+use std::error::Error;
+use std::io::Read;
+use std::{
+    fs::File,
+    io::{self},
+    path::PathBuf,
+};
 
 #[derive(Parser)]
 struct SolverCli {
     /// Do not log anything; Overrides verbose
-    #[arg(short='q', long="quiet")]
+    #[arg(short = 'q', long = "quiet")]
     quiet: bool,
     /// The file to read. If not provided it defaults to STDIN
     #[arg()]
@@ -33,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             0 => LevelFilter::Error,
             1 => LevelFilter::Info,
             2 => LevelFilter::Debug,
-            _ => LevelFilter::Trace
+            _ => LevelFilter::Trace,
         }
     };
 
@@ -47,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             debug!("Reading problem from STDIN");
 
             Box::new(io::stdin())
-        },
+        }
         Some(path) => {
             debug!("Reading problem from file \"{}\"", path.to_string_lossy());
 
@@ -61,7 +65,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (qubo_problem, up_modeller) = Choi::reduce(&problem);
 
-    let mut solver = SimulatedAnnealer::new_with_thread_rng(100_000);
+    let mut solver = {
+        // SimulatedAnnealer::new_with_thread_rng(100_000);
+        ParallelExhaustiveSearch::new()
+    };
 
     let qubo_solution = solver.solve(qubo_problem);
 
@@ -69,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     debug!("{:?}", solution);
 
-    if !problem.evaluate(&solution){
+    if !problem.evaluate(&solution) {
         error!("Solution that was generated does not satisfy the problem!");
         solution = SatSolution::Unknown
     }

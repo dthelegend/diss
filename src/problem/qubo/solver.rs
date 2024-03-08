@@ -1,5 +1,5 @@
-mod sa;
 mod pes;
+mod sa;
 
 use crate::problem::qubo::{QuboProblem, QuboSolution};
 
@@ -8,3 +8,4 @@ pub trait QuboSolver {
 }
 
 pub use sa::SimulatedAnnealer;
+pub use pes::ParallelExhaustiveSearch;

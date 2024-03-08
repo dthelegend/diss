@@ -1,7 +1,7 @@
 mod problem;
 
 use crate::problem::qubo::solver::{ParallelExhaustiveSearch, QuboSolver, SimulatedAnnealer};
-use crate::problem::sat::reducer::{Choi, QuboToSatReduction};
+use crate::problem::sat::reducer::{Chancellor, Choi, QuboToSatReduction};
 use crate::problem::sat::SatSolution;
 use clap::Parser;
 use log::{debug, error, info, set_max_level, LevelFilter};
@@ -63,7 +63,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     debug!("Ingested problem file and produced {:?}", problem);
 
-    let (qubo_problem, up_modeller) = Choi::reduce(&problem);
+    let (qubo_problem, up_modeller) = {
+        // Choi::reduce(&problem)
+        Chancellor::reduce(&problem)
+    };
 
     let mut solver = {
         // SimulatedAnnealer::new_with_thread_rng(100_000);

@@ -100,7 +100,7 @@ The plan is for the solver to implements 5 reduction algorithms:
 
 The plan is for the solver to implement 6 QUBO solving algorithms:
 - *Simulated Annealing*
-- *Parallel Exhausive Search* @tao_work-time_2020
+- *Parallel Exhaustive Search* @tao_work-time_2020
 - *MOPSO* @fujimoto_solving_2021
 - *Momentum Annealing* @okuyama_binary_2019
 - *Simulated Quantum Annealing* @volpe_integration_2023

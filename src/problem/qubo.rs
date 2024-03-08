@@ -10,6 +10,7 @@ pub mod solver;
 pub struct QuboProblem(CsrMatrix<isize>, usize);
 
 #[derive(Clone)]
+#[repr(transparent)]
 pub struct QuboSolution(pub DVector<isize>);
 
 #[derive(Error, Debug)]

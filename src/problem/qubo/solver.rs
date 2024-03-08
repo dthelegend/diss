@@ -1,4 +1,5 @@
 mod sa;
+mod pes;
 
 use crate::problem::qubo::{QuboProblem, QuboSolution};
 

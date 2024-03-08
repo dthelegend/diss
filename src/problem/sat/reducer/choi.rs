@@ -1,5 +1,6 @@
-use log::debug;
-use nalgebra::DVector;
+use log::{debug, log_enabled};
+use log::Level::{Debug, Trace};
+use nalgebra::{DMatrix, DVector};
 use nalgebra_sparse::{CooMatrix, CsrMatrix};
 
 use crate::problem::qubo::{QuboProblem, QuboSolution};
@@ -61,9 +62,14 @@ impl QuboToSatReduction for Choi {
             clause_counter += clause_len;
         }
 
-        // TODO Print the matrix generated here
+        let q_matrix = CsrMatrix::from(&matrix_constructor);
 
-        (QuboProblem::try_from_q_matrix(CsrMatrix::from(&matrix_constructor)).expect("Q Matrix has been explicitly constructed of the correct size"), Choi { map })
+        if log_enabled!(Trace) {
+            let q_matrix_for_printing = q_matrix.clone() * DMatrix::identity(q_matrix.ncols(), q_matrix.ncols());
+            debug!("Choi reduction q-matrix {}", q_matrix_for_printing);
+        }
+
+        (QuboProblem::try_from_q_matrix(q_matrix).expect("Q Matrix has been explicitly constructed of the correct size"), Choi { map })
     }
 
     fn up_model(&self, qubo_solution: QuboSolution) -> SatSolution {
@@ -81,7 +87,8 @@ impl QuboToSatReduction for Choi {
                 0
             } else {
                 // TODO This is an error that is currently not caught
-                1
+                // Assume false due to conflict
+                0
             }
         })))
     }

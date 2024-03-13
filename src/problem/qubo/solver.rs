@@ -1,3 +1,4 @@
+mod es;
 mod pes;
 mod sa;
 
@@ -7,5 +8,5 @@ pub trait QuboSolver {
     fn solve(&mut self, qubo_problem: QuboProblem) -> QuboSolution;
 }
 
+pub use es::ExhaustiveSearch;
 pub use sa::SimulatedAnnealer;
-pub use pes::ParallelExhaustiveSearch;

@@ -10,7 +10,7 @@ use thiserror::Error;
 
 #[derive(Clone)]
 pub enum SatSolution {
-    Sat(DVector<u32>),
+    Sat(DVector<bool>),
     Unsat,
     Unknown,
 }
@@ -38,7 +38,7 @@ impl Debug for SatSolution {
                 "Sat ({})",
                 arg0.iter()
                     .enumerate()
-                    .map(|(i, x)| format!("{}{}", if *x == 1 { "" } else { "¬" }, i))
+                    .map(|(i, x)| format!("{}{}", if *x { "" } else { "¬" }, i))
                     .collect::<Vec<String>>()
                     .join(" ")
             ),
@@ -112,10 +112,7 @@ impl KSatProblem {
             let mut clause_line: Vec<isize> = next_line
                 .split(' ')
                 .map(|x| {
-                    x.parse::<isize>().expect(
-                        format!("Unexpected non integer found while parsing clause: {}", x)
-                            .as_str(),
-                    )
+                    x.parse::<isize>().unwrap_or_else(|_| panic!("Unexpected non integer found while parsing clause: {}", x))
                 })
                 .collect();
 
@@ -168,7 +165,7 @@ impl KSatProblem {
         clauses.iter().all(|clause| {
             let x = clause
                 .iter()
-                .any(|&SatVariable(is_pos, number)| !(is_pos ^ (solution_vector[number] == 1)));
+                .any(|&SatVariable(is_pos, number)| !(is_pos ^ solution_vector[number]));
 
             if !x {
                 debug!("Clause violated! {:?}", clause)

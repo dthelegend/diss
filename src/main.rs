@@ -1,10 +1,10 @@
 mod problem;
 
-use crate::problem::qubo::solver::{ParallelExhaustiveSearch, QuboSolver, SimulatedAnnealer};
+use crate::problem::qubo::solver::{ExhaustiveSearch, QuboSolver, SimulatedAnnealer};
 use crate::problem::sat::reducer::{Chancellor, Choi, QuboToSatReduction};
 use crate::problem::sat::SatSolution;
 use clap::Parser;
-use log::{debug, error, info, set_max_level, LevelFilter};
+use log::{debug, error, info, set_max_level, trace, LevelFilter};
 use problem::sat::KSatProblem;
 use std::error::Error;
 use std::io::Read;
@@ -61,16 +61,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let problem = KSatProblem::from_benchmark_file(file)?;
 
-    debug!("Ingested problem file and produced {:?}", problem);
+    trace!("Ingested problem {:?}", problem);
 
     let (qubo_problem, up_modeller) = {
-        // Choi::reduce(&problem)
-        Chancellor::reduce(&problem)
+        Choi::reduce(&problem)
+        // Chancellor::reduce(&problem)
     };
 
+    trace!("Reduced problem produced {:?}", qubo_problem);
+
     let mut solver = {
-        // SimulatedAnnealer::new_with_thread_rng(100_000);
-        ParallelExhaustiveSearch::new()
+        // SimulatedAnnealer::new_with_thread_rng(100_000)
+        ExhaustiveSearch::new()
     };
 
     let qubo_solution = solver.solve(qubo_problem);

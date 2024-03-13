@@ -49,6 +49,7 @@ where
             QuboSolution(DVector::from_fn(qubo_problem.get_size(), |_, _| {
                 self.rng.gen_range(0..1)
             }));
+
         let mut current_evaluation = qubo_problem.evaluate(&current_solution);
 
         let mut best_solution = current_solution.clone();
@@ -57,17 +58,23 @@ where
         for k in 0..self.max_iterations {
             let t = temperature(1.0f64 - (k + 1) as f64 / (self.max_iterations as f64));
 
-            let random_neighbour = QuboSolution({
+            let (random_neighbour, random_evaluation) = {
                 let mut x = current_solution.0.clone();
 
                 let x_i = self.rng.gen_range(0..x.len());
 
-                x[x_i] = if x[x_i] == 0 { 1 } else { 0 };
+                x[x_i] = 1 - x[x_i];
 
-                x
-            });
+                let eval =
+                    current_evaluation + qubo_problem.delta_evaluate_k(&current_solution, x_i);
 
-            let random_evaluation = qubo_problem.evaluate(&random_neighbour);
+                trace!(
+                    "Generated solution {0}\nWith bit flip on {x_i}\nAnd evaluation {eval}",
+                    x.transpose()
+                );
+
+                (QuboSolution(x), eval)
+            };
 
             if random_evaluation < best_evaluation {
                 best_solution = random_neighbour.clone();

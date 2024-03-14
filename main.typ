@@ -1,36 +1,35 @@
-#let title = [QubeSAT: A Boolean Satisfiability solver using a QUBO Reduction]
+#import "acmart.typ": acmart
 
-#set text(
-  font: "Times New Roman",
-  size: 11pt
-)
-#set page(
-  paper: "a4",
-  margin: (x: 1.8cm, y: 1.5cm),
-  header: locate(
-    loc => if loc.page() > 1 {
-        align(right)[*#title*]
-    })
-)
+#let title = "QuboSAT: A Boolean Satisfiability solver using a QUBO Reduction"
 
-#align(horizon)[
-  #align(center)[
-  #text(17pt)[*#title*]
-  \
-  Daudi Wampamba Bandres\
-  CS with AI \
-  COMP4027 
-  #link("mailto:psydw3@nottingham.ac.uk")
-]]
-
-#pagebreak()
-
-#set page(
-)
-
-#set par(
-  justify: true,
-  leading: 0.52em,
+#show: body => acmart(
+  title: title,
+  subtitle: none,
+  authors: (
+    (
+      name: "Daudi Wampamba",
+      affiliation: "University of Nottingham",
+      email: "psydw3@nottingham.ac.uk",
+    ),
+  ),
+  ccs-concepts: (),
+  keywords: (),
+  conference: (
+      name: "ACM SIGOPS 30th Symposium on Operating Systems Principles",
+      short: "SOSP ’24",
+      year: "2024",
+      date: "November 4–6",
+      venue: "Austin, TX, USA",
+  ),
+  copyright: (
+      doi: "",
+      isbn: "",
+      price: "",
+      mode: none,
+  ),
+  review: false,
+  bibliography-file: "main.bib",
+  body
 )
 
 = Introduction
@@ -254,7 +253,3 @@ One of the things I overlooked in my proposal was looking into other more tradit
 - Evaluate the solver's performance against existing solvers and quantum computing approaches.
 - Record and analyze the results.
 - Compile all the research, development, and testing findings into a comprehensive final report.
-
-#pagebreak()
-
-#bibliography("main.bib")

@@ -6,6 +6,7 @@ use crate::problem::qubo::{QuboProblem, QuboSolution};
 use crate::problem::sat::reducer::QuboToSatReduction;
 use crate::problem::sat::{KSatProblem, SatSolution, SatVariable};
 
+// Choi scales directly in the number of clause variables and therefore the size of the problem
 pub struct Choi {
     map: Vec<(Vec<usize>, Vec<usize>)>,
 }

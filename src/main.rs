@@ -64,8 +64,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     trace!("Ingested problem {:?}", problem);
 
     let (qubo_problem, up_modeller) = {
-        Choi::reduce(&problem)
-        // Chancellor::reduce(&problem)
+        // Choi::reduce(&problem)
+        Chancellor::reduce(&problem)
     };
 
     trace!("Reduced problem produced {:?}", qubo_problem);

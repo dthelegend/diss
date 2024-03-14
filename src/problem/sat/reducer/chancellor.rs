@@ -1,9 +1,9 @@
-use log::debug;
-use nalgebra::{DMatrix, DVector, Matrix};
-use nalgebra_sparse::{CooMatrix, CsrMatrix};
 use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
 use crate::problem::sat::reducer::QuboToSatReduction;
 use crate::problem::sat::{KSatProblem, SatSolution};
+use log::debug;
+use nalgebra::{DMatrix, DVector, Matrix};
+use nalgebra_sparse::{CooMatrix, CsrMatrix};
 
 pub struct Chancellor(usize);
 
@@ -11,21 +11,22 @@ impl QuboToSatReduction for Chancellor {
     fn reduce(sat_problem: &KSatProblem) -> (QuboProblem, Self) {
         let KSatProblem {
             nb_vars,
-            clause_list
+            clause_list,
         } = sat_problem;
 
         let num_ancillae: usize = clause_list.iter().map(|x| x.len()).sum();
 
         debug!("Chancellor reduction requires {} ancillae", num_ancillae);
 
-        let mut q_matrix: DMatrix<QuboType> = DMatrix::zeros(nb_vars + num_ancillae, nb_vars + num_ancillae);
+        let mut q_matrix: DMatrix<QuboType> =
+            DMatrix::zeros(nb_vars + num_ancillae, nb_vars + num_ancillae);
 
         // Coupling Strength in the ising model
-        const J : QuboType = 2;
+        const J: QuboType = 2;
         // Site Strength in the ising model
-        const H : QuboType = -J;
+        const H: QuboType = -J;
         // Not sure?
-        const G : QuboType = 1;
+        const G: QuboType = 1;
 
         let mut new_var_counter = 0;
         for clause in clause_list {
@@ -52,30 +53,31 @@ impl QuboToSatReduction for Chancellor {
                 // h^a_i c(i)\sigma^z_{i,a}
                 let aux_variable = nb_vars + new_var_counter + i_index;
                 let q_i = if i_index == 0 { G / 2 } else { 0 };
-                let h_a_i = - J * (2 * i_index as QuboType - clause.len() as QuboType) + q_i;
+                let h_a_i = -J * (2 * i_index as QuboType - clause.len() as QuboType) + q_i;
                 q_matrix[(aux_variable, aux_variable)] = 2 * h_a_i;
             }
 
             new_var_counter += clause.len();
         }
 
-        for i in 0..(nb_vars+num_ancillae) {
-            let coupling_sum: QuboType =(0..(nb_vars+num_ancillae))
+        for i in 0..(nb_vars + num_ancillae) {
+            let coupling_sum: QuboType = (0..(nb_vars + num_ancillae))
                 .filter(|j| i != *j)
-                .map(|j| q_matrix[(i,j)])
+                .map(|j| q_matrix[(i, j)])
                 .sum();
-            q_matrix[(i,i)] -= 2 * coupling_sum;
+            q_matrix[(i, i)] -= 2 * coupling_sum;
         }
         assert_eq!(num_ancillae, new_var_counter);
 
         debug!("Chancellor reduction produced: {}", q_matrix);
 
-        (QuboProblem::try_from_q_matrix(CsrMatrix::from(&q_matrix)).unwrap(), Self(*nb_vars))
+        (
+            QuboProblem::try_from_q_matrix(CsrMatrix::from(&q_matrix)).unwrap(),
+            Self(*nb_vars),
+        )
     }
 
     fn up_model(&self, QuboSolution(solution_vector): QuboSolution) -> SatSolution {
-        SatSolution::Sat(DVector::from_fn(self.0, |i, _| {
-            solution_vector[i] != 0
-        }))
+        SatSolution::Sat(DVector::from_fn(self.0, |i, _| solution_vector[i] != 0))
     }
 }

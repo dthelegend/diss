@@ -75,11 +75,11 @@ impl QuboToSatReduction for Choi {
 
     fn up_model(&self, qubo_solution: QuboSolution) -> SatSolution {
         let QuboSolution(solution_vector) = qubo_solution;
-        
+
         let mut output_vector: Vec<bool> = Vec::with_capacity(self.map.len());
         for i in 0..self.map.len() {
             let (true_reference_list, false_reference_list) = &self.map[i];
-            
+
             let v_i = if true_reference_list.is_empty() {
                 // Only check for false references if there are no true references
                 !false_reference_list
@@ -110,8 +110,8 @@ impl QuboToSatReduction for Choi {
                 } else if is_true && is_false {
                     warn!("Conflict found when up-modelling for Variable {i}!");
                     trace!("Model for {i} is (is_true: {true_reference_list:?} / {is_true}) (is_false: {false_reference_list:?} / {is_false})");
-                    
-                    return SatSolution::Unsat
+
+                    return SatSolution::Unsat;
                 } else {
                     is_true && !is_false
                 }
@@ -119,7 +119,7 @@ impl QuboToSatReduction for Choi {
 
             output_vector.push(v_i);
         }
-        
+
         SatSolution::Sat(DVector::from_vec(output_vector))
     }
 }

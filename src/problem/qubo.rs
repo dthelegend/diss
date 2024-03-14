@@ -95,7 +95,7 @@ impl QuboProblem {
     /// let delta_eval_k_and_eval_j =
     /// //                              X              D(k, X) j  k
     /// sut.flip_j_and_delta_evaluate_k(&sut_solution, delta_k,    j, k);
-    /// 
+    ///
     /// assert_eq!(sut.evaluate(&sut_solution.flip(k).flip(j)) - sut.evaluate(&sut_solution.flip(j)), delta_eval_k_and_eval_j);
     /// ```
     pub fn flip_j_and_delta_evaluate_k(
@@ -114,10 +114,10 @@ impl QuboProblem {
             .get_entry(j, k)
             .expect("J and K should not be out of bounds!")
             .into_value();
-        
+
         let s_j = 2 * solution_vector[j] - 1;
         let s_k = 2 * solution_vector[k] - 1;
-        
+
         delta_k + 2 * w_jk * s_j * s_k
     }
 
@@ -153,15 +153,18 @@ impl QuboProblem {
     ) -> QuboType {
         let row = self.0.get_row(k).expect("K should not be out of bounds!");
 
-        let row_sum: QuboType = zip(row.col_indices().iter().cloned(), row.values().iter().cloned())
-            .map(|(i, x)| solution_vector[i] * x)
-            .sum();
+        let row_sum: QuboType = zip(
+            row.col_indices().iter().cloned(),
+            row.values().iter().cloned(),
+        )
+        .map(|(i, x)| solution_vector[i] * x)
+        .sum();
 
         let sigma_k = 2 * solution_vector[k] - 1;
 
         let w_kk = row.get_entry(k).unwrap().into_value();
 
-        - 2 * row_sum * sigma_k + w_kk
+        -2 * row_sum * sigma_k + w_kk
     }
 }
 

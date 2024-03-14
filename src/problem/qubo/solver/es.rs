@@ -14,7 +14,13 @@ impl ExhaustiveSearch {
 }
 
 /// This operation is `O(n 2^n)`
-fn exhaustive_search_helper(problem: &QuboProblem, solution: QuboSolution, deltas: Vec<QuboType>, curr_eval: QuboType, i: usize) -> (QuboSolution, QuboType) {
+fn exhaustive_search_helper(
+    problem: &QuboProblem,
+    solution: QuboSolution,
+    deltas: Vec<QuboType>,
+    curr_eval: QuboType,
+    i: usize,
+) -> (QuboSolution, QuboType) {
     if i == 0 {
         return (solution, curr_eval);
     }
@@ -22,9 +28,12 @@ fn exhaustive_search_helper(problem: &QuboProblem, solution: QuboSolution, delta
     let eval_i = curr_eval + deltas[i - 1];
 
     // Update deltas
-    let new_deltas: Vec<_> = deltas.iter().enumerate().take(i).map(|(j, d_j)| {
-        problem.flip_j_and_delta_evaluate_k(&solution, *d_j, i - 1, j)
-    }).collect();
+    let new_deltas: Vec<_> = deltas
+        .iter()
+        .enumerate()
+        .take(i)
+        .map(|(j, d_j)| problem.flip_j_and_delta_evaluate_k(&solution, *d_j, i - 1, j))
+        .collect();
 
     let left_min = exhaustive_search_helper(problem, solution, deltas, curr_eval, i - 1);
     let right_min = exhaustive_search_helper(problem, solution_i, new_deltas, eval_i, i - 1);
@@ -37,7 +46,7 @@ impl QuboSolver for ExhaustiveSearch {
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
 
         let start_solution = QuboSolution(DVector::zeros(qubo_problem.get_size()));
-        
+
         let delta_j_precalcs: Vec<QuboType> = (0..qubo_problem.get_size())
             .map(|i| qubo_problem.delta_evaluate_k(&start_solution, i))
             .collect();
@@ -54,7 +63,7 @@ impl QuboSolver for ExhaustiveSearch {
         let (min_solution, min_eval) =
             // exhaustive_search_helper(&qubo_problem, start_solution, 0, qubo_problem.get_size());
             exhaustive_search_helper(&qubo_problem, start_solution, delta_j_precalcs, 0, qubo_problem.get_size());
-        
+
         debug!(
             "Produced a provably optimal min evaluation {} with solution: {}",
             min_eval,

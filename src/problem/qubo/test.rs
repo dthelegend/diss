@@ -39,8 +39,7 @@ fn check_delta_evaluation_jk() {
     }))
     .upper_triangle();
 
-    let sut =
-        QuboProblem::try_from_q_matrix(sut_internal).expect("Matrix is supposedly valid");
+    let sut = QuboProblem::try_from_q_matrix(sut_internal).expect("Matrix is supposedly valid");
     let sut_solution = QuboSolution(DVector::from_iterator(
         PROBLEM_SIZE,
         (0..PROBLEM_SIZE).map(|_| rng.gen_range(0..=1)),
@@ -59,9 +58,10 @@ fn check_delta_evaluation_jk() {
             let delta_eval_k_and_eval_j =
                 //                              X              D(k, X)  j  k
                 sut.flip_j_and_delta_evaluate_k(&sut_solution, delta_k, j, k);
-            
-            let delta_kj_k = sut.evaluate(&sut_solution_k.flip(j)) - sut.evaluate(&sut_solution.flip(j));
-            
+
+            let delta_kj_k =
+                sut.evaluate(&sut_solution_k.flip(j)) - sut.evaluate(&sut_solution.flip(j));
+
             assert_eq!(delta_kj_k, delta_eval_k_and_eval_j);
         }
     }
@@ -86,10 +86,7 @@ fn check_delta_evaluation_k() {
 
     println!("Generated problem: {:?}", sut);
 
-    let sut_solution = QuboSolution(DVector::from_fn(
-        PROBLEM_SIZE,
-        |_,_| rng.gen_range(0..=1),
-    ));
+    let sut_solution = QuboSolution(DVector::from_fn(PROBLEM_SIZE, |_, _| rng.gen_range(0..=1)));
 
     let eval = sut.evaluate(&sut_solution);
 

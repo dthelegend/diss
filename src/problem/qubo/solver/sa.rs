@@ -33,7 +33,9 @@ impl SimulatedAnnealer<ThreadRng> {
 }
 
 fn temperature(x: f64) -> f64 {
-    x
+    const K: f64 = 5.0;
+
+    f64::exp(-x * K)
 }
 
 fn acceptance_probability(evaluation: isize, other_evaluation: isize, temperature: f64) -> f64 {
@@ -49,8 +51,10 @@ where
             QuboSolution(DVector::from_fn(qubo_problem.get_size(), |_, _| {
                 self.rng.gen_range(0..1)
             }));
-
         let mut current_evaluation = qubo_problem.evaluate(&current_solution);
+        let mut current_deltas: Vec<_> = (0..qubo_problem.get_size())
+            .map(|i| qubo_problem.delta_evaluate_k(&current_solution, i))
+            .collect();
 
         let mut best_solution = current_solution.clone();
         let mut best_evaluation = current_evaluation;
@@ -58,34 +62,34 @@ where
         for k in 0..self.max_iterations {
             let t = temperature(1.0f64 - (k + 1) as f64 / (self.max_iterations as f64));
 
-            let (random_neighbour, random_evaluation) = {
-                let mut x = current_solution.0.clone();
+            let random_i = self.rng.gen_range(0..qubo_problem.get_size());
 
-                let x_i = self.rng.gen_range(0..x.len());
-
-                x[x_i] = 1 - x[x_i];
-
-                let eval =
-                    current_evaluation + qubo_problem.delta_evaluate_k(&current_solution, x_i);
-
-                trace!(
-                    "Generated solution {0}\nWith bit flip on {x_i}\nAnd evaluation {eval}",
-                    x.transpose()
-                );
-
-                (QuboSolution(x), eval)
-            };
+            let random_evaluation = current_evaluation + current_deltas[random_i];
 
             if random_evaluation < best_evaluation {
-                best_solution = random_neighbour.clone();
+                best_solution = current_solution.flip(random_i);
                 best_evaluation = random_evaluation;
             }
 
             if acceptance_probability(current_evaluation, random_evaluation, t)
                 > self.rng.gen_range(0f64..1f64)
             {
-                current_solution = random_neighbour;
+                // Calculating deltas must be done before updating the solution!
+                current_deltas = current_deltas
+                    .into_iter()
+                    .enumerate()
+                    .map(|(j, d_j)| {
+                        qubo_problem.flip_j_and_delta_evaluate_k(
+                            &current_solution,
+                            d_j,
+                            random_i,
+                            j,
+                        )
+                    })
+                    .collect();
+
                 current_evaluation = random_evaluation;
+                current_solution = current_solution.flip(random_i);
             }
 
             trace!("Current evaluation is {current_evaluation}");

@@ -112,7 +112,9 @@ impl KSatProblem {
             let mut clause_line: Vec<isize> = next_line
                 .split_whitespace()
                 .map(|x| {
-                    x.parse::<isize>().unwrap_or_else(|_| panic!("Unexpected non integer found while parsing clause: {}", x))
+                    x.parse::<isize>().unwrap_or_else(|_| {
+                        panic!("Unexpected non integer found while parsing clause: {}", x)
+                    })
                 })
                 .collect();
 

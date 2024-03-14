@@ -49,7 +49,7 @@ where
     fn solve(&mut self, qubo_problem: QuboProblem) -> QuboSolution {
         let mut current_solution =
             QuboSolution(DVector::from_fn(qubo_problem.get_size(), |_, _| {
-                self.rng.gen_range(0..1)
+                self.rng.gen_range(0..=1)
             }));
         let mut current_evaluation = qubo_problem.evaluate(&current_solution);
         let mut current_deltas: Vec<_> = (0..qubo_problem.get_size())
@@ -59,8 +59,8 @@ where
         let mut best_solution = current_solution.clone();
         let mut best_evaluation = current_evaluation;
 
-        for k in 0..self.max_iterations {
-            let t = temperature((k + 1) as f64 / (self.max_iterations as f64));
+        for k in 1..=self.max_iterations {
+            let t = temperature(k as f64 / (self.max_iterations as f64));
             
             let random_i = self.rng.gen_range(0..qubo_problem.get_size());
 

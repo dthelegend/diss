@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    simple_logger::SimpleLogger::new().init().unwrap();
+    simple_logger::SimpleLogger::new().init()?;
     set_max_level(verbosity);
 
     info!("Current Verbosity is {}", verbosity);

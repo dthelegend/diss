@@ -158,9 +158,9 @@ impl QuboProblem {
             .sum();
 
         let sigma_k = 2 * solution_vector[k] - 1;
-        
+
         let w_kk = row.get_entry(k).unwrap().into_value();
-        
+
         - 2 * row_sum * sigma_k + w_kk
     }
 }

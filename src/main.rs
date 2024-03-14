@@ -68,10 +68,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Chancellor::reduce(&problem)
     };
 
+    debug!("Reduced problem size is {}", qubo_problem.get_size());
     trace!("Reduced problem produced {:?}", qubo_problem);
 
     let mut solver = {
-        SimulatedAnnealer::new_with_thread_rng(100_000)
+        SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
     };
 

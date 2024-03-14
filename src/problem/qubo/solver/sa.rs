@@ -60,8 +60,8 @@ where
         let mut best_evaluation = current_evaluation;
 
         for k in 0..self.max_iterations {
-            let t = temperature(1.0f64 - (k + 1) as f64 / (self.max_iterations as f64));
-
+            let t = temperature((k + 1) as f64 / (self.max_iterations as f64));
+            
             let random_i = self.rng.gen_range(0..qubo_problem.get_size());
 
             let random_evaluation = current_evaluation + current_deltas[random_i];
@@ -70,7 +70,7 @@ where
                 best_solution = current_solution.flip(random_i);
                 best_evaluation = random_evaluation;
             }
-
+            
             if acceptance_probability(current_evaluation, random_evaluation, t)
                 > self.rng.gen_range(0f64..1f64)
             {

@@ -74,10 +74,12 @@ impl QuboToSatReduction for Choi {
 
     fn up_model(&self, qubo_solution: QuboSolution) -> SatSolution {
         let QuboSolution(solution_vector) = qubo_solution;
-
-        SatSolution::Sat(DVector::from_fn(self.map.len(), |i, _| {
+        
+        let mut output_vector: Vec<bool> = Vec::with_capacity(self.map.len());
+        for i in 0..self.map.len() {
             let (true_reference_list, false_reference_list) = &self.map[i];
-            if true_reference_list.is_empty() {
+            
+            let v_i = if true_reference_list.is_empty() {
                 // Only check for false references if there are no true references
                 !false_reference_list
                     .iter()
@@ -101,15 +103,22 @@ impl QuboToSatReduction for Choi {
                     .map(|x| solution_vector[*x])
                     .any(|x| x == 0);
 
-                if !(is_true ^ is_false) {
-                    warn!("Conflict found when up-modelling for Variable {i}! Defaulting to false");
-                    trace!("Model for {i} is (is_true: {true_reference_list:?} / {is_true}) (is_false: {false_reference_list:?} / {is_false})");
-                    // TODO This is an error that is currently not caught. Likely an indicator that this problem is Unsat
+                if !(is_true || is_false) {
+                    // This variable is never chosen as the true variable in any clause, and therefore must be assumed false
                     false
+                } else if is_true && is_false {
+                    warn!("Conflict found when up-modelling for Variable {i}!");
+                    trace!("Model for {i} is (is_true: {true_reference_list:?} / {is_true}) (is_false: {false_reference_list:?} / {is_false})");
+                    
+                    return SatSolution::Unsat
                 } else {
                     is_true && !is_false
                 }
-            }
-        }))
+            };
+
+            output_vector.push(v_i);
+        }
+        
+        SatSolution::Sat(DVector::from_vec(output_vector))
     }
 }

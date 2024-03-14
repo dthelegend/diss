@@ -10,3 +10,4 @@ pub trait QuboSolver {
 
 pub use es::ExhaustiveSearch;
 pub use sa::SimulatedAnnealer;
+pub use pes::ParallelExhaustiveSearch;

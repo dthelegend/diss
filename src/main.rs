@@ -1,6 +1,6 @@
 mod problem;
 
-use crate::problem::qubo::solver::{ExhaustiveSearch, QuboSolver, SimulatedAnnealer};
+use crate::problem::qubo::solver::{ExhaustiveSearch, ParallelExhaustiveSearch, QuboSolver, SimulatedAnnealer};
 use crate::problem::sat::reducer::{Chancellor, Choi, QuboToSatReduction};
 use crate::problem::sat::SatSolution;
 use clap::Parser;
@@ -46,20 +46,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Current Verbosity is {}", verbosity);
 
-    let file: Box<dyn Read> = match args.file {
-        None => {
-            debug!("Reading problem from STDIN");
+    let problem = {
+        let file: Box<dyn Read> = match args.file {
+            None => {
+                debug!("Reading problem from STDIN");
 
-            Box::new(io::stdin())
-        }
-        Some(path) => {
-            debug!("Reading problem from file \"{}\"", path.to_string_lossy());
+                Box::new(io::stdin())
+            }
+            Some(path) => {
+                debug!("Reading problem from file \"{}\"", path.to_string_lossy());
 
-            Box::new(File::open(path)?)
-        }
+                Box::new(File::open(path)?)
+            }
+        };
+
+        KSatProblem::from_benchmark_file(file)?
     };
-
-    let problem = KSatProblem::from_benchmark_file(file)?;
 
     trace!("Ingested problem {:?}", problem);
 
@@ -72,8 +74,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     trace!("Reduced problem produced {:?}", qubo_problem);
 
     let mut solver = {
-        SimulatedAnnealer::new_with_thread_rng(1_000_000)
+        // SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
+        ParallelExhaustiveSearch::new(4) // TODO Allow this to be set by CLI arg
     };
 
     let qubo_solution = solver.solve(qubo_problem);

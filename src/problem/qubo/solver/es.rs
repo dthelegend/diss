@@ -14,7 +14,7 @@ impl ExhaustiveSearch {
 }
 
 /// This operation is `O(n 2^n)`
-fn exhaustive_search_helper(
+pub fn exhaustive_search_helper(
     problem: &QuboProblem,
     solution: QuboSolution,
     deltas: Vec<QuboType>,
@@ -30,9 +30,10 @@ fn exhaustive_search_helper(
     // Update deltas
     let new_deltas: Vec<_> = deltas
         .iter()
+        .cloned()
         .enumerate()
         .take(i)
-        .map(|(j, d_j)| problem.flip_j_and_delta_evaluate_k(&solution, *d_j, i - 1, j))
+        .map(|(j, d_j)| problem.flip_j_and_delta_evaluate_k(&solution, d_j, i - 1, j))
         .collect();
 
     let left_min = exhaustive_search_helper(problem, solution, deltas, curr_eval, i - 1);
@@ -56,7 +57,7 @@ impl QuboSolver for ExhaustiveSearch {
         }
 
         debug!(
-            "Starting search in tree of size 2^{}",
+            "Starting search of tree of size 2^{}",
             qubo_problem.get_size()
         );
 

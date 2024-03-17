@@ -1,7 +1,9 @@
 mod problem;
 
-use crate::problem::qubo::solver::{ExhaustiveSearch, ParallelExhaustiveSearch, QuboSolver, SimulatedAnnealer};
-use crate::problem::sat::reducer::{Chancellor, Choi, QuboToSatReduction};
+use crate::problem::qubo::solver::{
+    ExhaustiveSearch, ParallelExhaustiveSearch, QuboSolver, SimulatedAnnealer,
+};
+use crate::problem::sat::reducer::{Chancellor, Choi, Nusslein, QuboToSatReduction};
 use crate::problem::sat::SatSolution;
 use clap::Parser;
 use log::{debug, error, info, set_max_level, trace, LevelFilter};
@@ -66,8 +68,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     trace!("Ingested problem {:?}", problem);
 
     let (qubo_problem, up_modeller) = {
-        Choi::reduce(&problem)
+        // Choi::reduce(&problem)
         // Chancellor::reduce(&problem)
+        Nusslein::reduce(&problem)
     };
 
     debug!("Reduced problem size is {}", qubo_problem.get_size());
@@ -76,7 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut solver = {
         // SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
-        ParallelExhaustiveSearch::new(4) // TODO Allow this to be set by CLI arg
+        ParallelExhaustiveSearch::new(5) // TODO Allow this to be set by CLI arg
     };
 
     let qubo_solution = solver.solve(qubo_problem);

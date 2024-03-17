@@ -9,6 +9,8 @@ mod test;
 
 pub mod solver;
 
+pub mod helpers;
+
 pub type QuboType = isize;
 
 pub struct QuboProblem(CsrMatrix<QuboType>, usize);
@@ -100,7 +102,7 @@ impl QuboProblem {
     /// ```
     pub fn flip_j_and_delta_evaluate_k(
         &self,
-        QuboSolution(solution_vector): &QuboSolution,
+        solution: &QuboSolution,
         delta_k: QuboType,
         j: usize,
         k: usize,
@@ -115,8 +117,8 @@ impl QuboProblem {
             .expect("J and K should not be out of bounds!")
             .into_value();
 
-        let s_j = 2 * solution_vector[j] - 1;
-        let s_k = 2 * solution_vector[k] - 1;
+        let s_j = helpers::sigma(solution, j);
+        let s_k = helpers::sigma(solution, k);
 
         delta_k + 2 * w_jk * s_j * s_k
     }
@@ -148,7 +150,7 @@ impl QuboProblem {
     /// ```
     pub fn delta_evaluate_k(
         &self,
-        QuboSolution(solution_vector): &QuboSolution,
+        solution @ QuboSolution(solution_vector): &QuboSolution,
         k: usize,
     ) -> QuboType {
         let row = self.0.get_row(k).expect("K should not be out of bounds!");
@@ -160,7 +162,7 @@ impl QuboProblem {
         .map(|(i, x)| solution_vector[i] * x)
         .sum();
 
-        let sigma_k = 2 * solution_vector[k] - 1;
+        let sigma_k = helpers::sigma(solution, k);
 
         let w_kk = row.get_entry(k).unwrap().into_value();
 

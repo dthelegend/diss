@@ -13,6 +13,22 @@ impl ExhaustiveSearch {
     }
 }
 
+#[inline]
+pub fn calculate_deltas_i(
+    problem: &QuboProblem,
+    solution: &QuboSolution,
+    old_deltas: &[QuboType],
+    i: usize,
+) -> Vec<QuboType> {
+    old_deltas
+        .iter()
+        .cloned()
+        .enumerate()
+        .take(i)
+        .map(|(j, d_j)| problem.flip_j_and_delta_evaluate_k(solution, d_j, i - 1, j))
+        .collect()
+}
+
 /// This operation is `O(n 2^n)`
 pub fn exhaustive_search_helper(
     problem: &QuboProblem,
@@ -28,13 +44,7 @@ pub fn exhaustive_search_helper(
     let eval_i = curr_eval + deltas[i - 1];
 
     // Update deltas
-    let new_deltas: Vec<_> = deltas
-        .iter()
-        .cloned()
-        .enumerate()
-        .take(i)
-        .map(|(j, d_j)| problem.flip_j_and_delta_evaluate_k(&solution, d_j, i - 1, j))
-        .collect();
+    let new_deltas = calculate_deltas_i(problem, &solution, &deltas, i);
 
     let left_min = exhaustive_search_helper(problem, solution, deltas, curr_eval, i - 1);
     let right_min = exhaustive_search_helper(problem, solution_i, new_deltas, eval_i, i - 1);

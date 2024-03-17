@@ -112,8 +112,6 @@ fn implement_clause(problem_size: usize, mut triplets : Vec<(usize, usize, QuboT
     } else {
         let h = fast_ceil_log2(clause.len());
         
-        println!("Clause of len {} has h of {h}", clause.len());
-        
         // Create H auxiliary variables
         let mut new_clause = Vec::with_capacity(h as usize);
 

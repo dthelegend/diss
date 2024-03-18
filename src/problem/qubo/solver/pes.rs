@@ -23,6 +23,8 @@ impl ParallelExhaustiveSearch {
 
 // Generate all bit strings and deltas for computation. Produces an array of size 2^n
 // Can technically generate all solutions for a problem
+// This operation runs in O(n^3) time sequentially, but it is technically O(n^2) across 2^n processors
+// Think about it this way: this code runs an O(n) operation, across (2^n) processors,O(n - alpha) times
 fn generate_prefixes(
     problem: &QuboProblem,
     solution_list: Vec<(QuboSolution, Vec<QuboType>, QuboType)>,
@@ -52,7 +54,10 @@ impl QuboSolver for ParallelExhaustiveSearch {
         // TODO infer this from system available parallelism
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
 
-        if log_enabled!(Warn) && qubo_problem.get_size() > BIGGEST_REASONABLE_SEARCH_SIZE * 2usize.pow(self.beta as u32) {
+        if log_enabled!(Warn)
+            && qubo_problem.get_size()
+                > BIGGEST_REASONABLE_SEARCH_SIZE * 2usize.pow(self.beta as u32)
+        {
             warn!("Exhaustive Searches greater than {BIGGEST_REASONABLE_SEARCH_SIZE} can take extremely long amounts of time! (This algorithm runs in exponential time, but it is provably optimal!)")
         }
 

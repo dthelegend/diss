@@ -1,9 +1,7 @@
-use crate::problem::qubo::helpers::sigma;
 use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
 use crate::problem::sat::reducer::QuboToSatReduction;
 use crate::problem::sat::{KSatProblem, SatSolution, SatVariable};
-use log::debug;
-use nalgebra::{DMatrix, DVector};
+use nalgebra::DVector;
 use nalgebra_sparse::{CooMatrix, CsrMatrix};
 
 pub struct Chancellor(usize);
@@ -53,14 +51,14 @@ impl QuboToSatReduction for Chancellor {
 
                 let q_i = if i == 0 { G / 2 } else { 0 };
 
-                let h_a_i = - J_A * ((2 * i as QuboType) - clause.len() as QuboType) + q_i;
+                let h_a_i = -J_A * ((2 * i as QuboType) - clause.len() as QuboType) + q_i;
 
                 q_matrix.push(i_a, i_a, h_a_i);
             }
 
             new_var_counter += clause.len();
         }
-        
+
         assert_eq!(num_ancillae, new_var_counter);
         (
             QuboProblem::try_from_q_matrix(CsrMatrix::from(&q_matrix)).unwrap(),

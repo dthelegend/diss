@@ -14,7 +14,7 @@ pub struct Choi {
 impl QuboToSatReduction for Choi {
     fn reduce(sat_problem: &KSatProblem) -> (QuboProblem, Self) {
         const VERTEX_WEIGHT: isize = -1;
-        const EDGE_PENALTY: isize = 10;
+        const EDGE_PENALTY: isize = 0;
         const EDGE_WEIGHT: isize = -(2 * VERTEX_WEIGHT) + EDGE_PENALTY;
 
         let total_number_of_clause_vars = sat_problem.clause_list.iter().map(|x| x.len()).sum();

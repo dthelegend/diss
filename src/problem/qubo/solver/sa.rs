@@ -1,7 +1,7 @@
 use log::{debug, trace};
 use nalgebra::DVector;
 use rand::prelude::IteratorRandom;
-use std::cmp::{max, max_by_key, min, min_by_key};
+use std::cmp::{max_by_key, min_by_key};
 
 use crate::problem::qubo::solver::QuboSolver;
 use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};

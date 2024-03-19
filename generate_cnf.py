@@ -9,7 +9,11 @@ def generate_cnf(num_variables, num_clauses, min_literals_per_clause, max_litera
         clause = []
         num_literals = random.randint(min_literals_per_clause, max_literals_per_clause)
         for _ in range(num_literals):
-            variable = random.randint(1, num_variables)
+            variable = None
+            while variable is None:
+                variable = random.randint(1, num_variables)
+                if variable in (abs(v) for v in clause):
+                    variable = None
             # Randomly negate some literals
             if random.choice([True, False]):
                 variable = -variable

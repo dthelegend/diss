@@ -2,7 +2,7 @@ use log::{trace, warn};
 use nalgebra::DVector;
 use nalgebra_sparse::{CooMatrix, CsrMatrix};
 
-use crate::problem::qubo::{QuboProblem, QuboSolution};
+use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
 use crate::problem::sat::reducer::QuboToSatReduction;
 use crate::problem::sat::{KSatProblem, SatSolution, SatVariable};
 
@@ -13,9 +13,9 @@ pub struct Choi {
 
 impl QuboToSatReduction for Choi {
     fn reduce(sat_problem: &KSatProblem) -> (QuboProblem, Self) {
-        const VERTEX_WEIGHT: isize = -1;
-        const EDGE_PENALTY: isize = 0;
-        const EDGE_WEIGHT: isize = -(2 * VERTEX_WEIGHT) + EDGE_PENALTY;
+        const VERTEX_WEIGHT: QuboType = -1;
+        const EDGE_PENALTY: QuboType = 0;
+        const EDGE_WEIGHT: QuboType = -(2 * VERTEX_WEIGHT) + EDGE_PENALTY;
 
         let total_number_of_clause_vars = sat_problem.clause_list.iter().map(|x| x.len()).sum();
         let mut matrix_constructor =

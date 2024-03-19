@@ -11,7 +11,7 @@ pub mod solver;
 
 pub mod helpers;
 
-pub type QuboType = isize;
+pub type QuboType = i32;
 
 pub struct QuboProblem(CsrMatrix<QuboType>, usize);
 
@@ -109,8 +109,8 @@ impl QuboProblem {
             offset += b;
         }
         
-        let muQuboProblem::try_from_coo_matrix(&q_matrix)
-            .map(|x| (x, offset))
+        QuboProblem::try_from_coo_matrix(&q_matrix)
+            .map(|QuboProblem(x, i)| (QuboProblem(- x, i), offset))
     }
 
     pub fn get_size(&self) -> usize {
@@ -122,7 +122,7 @@ impl QuboProblem {
 
         // Matrix math is associative, and only csr * dense is implemented
         let xqx =
-            solution_vector.clone().cast::<isize>().transpose() * (q_matrix * solution_vector);
+            solution_vector.transpose() * (q_matrix * solution_vector);
         *xqx.get((0, 0))
             .expect("If dimensions match the final matrix is a 1x1 matrix")
     }

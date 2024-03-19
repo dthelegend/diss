@@ -52,11 +52,11 @@ fn generate_prefixes(
 impl QuboSolver for ParallelExhaustiveSearch {
     fn solve(&mut self, qubo_problem: QuboProblem) -> QuboSolution {
         // TODO infer this from system available parallelism
-        const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
+        const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32 * 16;
 
         if log_enabled!(Warn)
             && qubo_problem.get_size()
-                > BIGGEST_REASONABLE_SEARCH_SIZE * 2usize.pow(self.beta as u32)
+                > BIGGEST_REASONABLE_SEARCH_SIZE
         {
             warn!("Exhaustive Searches greater than {BIGGEST_REASONABLE_SEARCH_SIZE} can take extremely long amounts of time! (This algorithm runs in exponential time, but it is provably optimal!)")
         }

@@ -13,40 +13,38 @@ pub fn implement_clause(
 ) -> (usize, Vec<(usize, usize, QuboType)>, Vec<(usize, QuboType)>) {
     if clause.len() == 3 {
         const J: QuboType = 5;
-        const J_A: QuboType = 2 * J;
+        const J_A: QuboType = 2 * J; // J_A = 2J > |H|
         const G: QuboType = 1;
         const H: QuboType = G;
         const H_A : QuboType = 2 * H;
 
         let var_a = problem_size;
 
-        let mut c_a = 1;
+        let mut c_a = -1;
+        
         for (i, &SatVariable(is_true_i, var_i)) in clause.iter().enumerate() {
             let c_i = 2 * (is_true_i as QuboType) - 1;
 
             // single terms (a_i)
             // TODO THIS IS WRONG
-            // biases.push((var_i, - 1));
-            // biases.push((var_i, J));
-            // biases.push((var_i, - J + 1));
-            
+            biases.push((var_i, - J_A * c_i));
 
-            // double terms - (a_i)(a_j)
+            // double terms - (a_i)(a_j) =
             // THIS IS RIGHT
-            for &SatVariable(_, var_j) in &clause[(i + 1)..] {
-                triplets.push((var_i, var_j, - 1));
-                triplets.push((var_i, var_j, - J));
+            for &SatVariable(is_true_j, var_j) in &clause[(i + 1)..] {
+                let c_j = 2 * (is_true_j as QuboType) - 1;
+
+                triplets.push((var_i, var_j, J * c_i * c_j + H));
             }
             
             // triple term
             // TODO THIS IS WRONG
             biases.push((var_i, H * c_i));
-            triplets.push((var_i, var_a, - J_A));
-
-            c_a *= c_i;
+            triplets.push((var_i, var_a, J_A));
+            
+            c_a *= c_i
         }
         // + h^a sigma_a^z
-        println!("{}/{}", H_A, c_a);
         biases.push((var_a, H_A * c_a));
 
         // println!("{triplets:?}");

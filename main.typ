@@ -106,6 +106,10 @@ The plan is for the solver to implement 6 QUBO solving algorithms:
 - *Divers Adaptive Bulk Search* @nakano_diverse_2022
 
 TODO: High level overview on each of these methods and how they work
+TODO: FDCC
+TODO BASIN ANALYSIS
+TODO BIG VALLEY STRUCTURE TSP
+TODO CLusters
 
 = Implementation
 

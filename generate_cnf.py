@@ -1,13 +1,13 @@
 import random
 
 
-def generate_cnf(num_variables, num_clauses, max_literals_per_clause):
+def generate_cnf(num_variables, num_clauses, min_literals_per_clause, max_literals_per_clause):
     cnf = []
 
     # Add clauses
     for _ in range(num_clauses):
         clause = []
-        num_literals = random.randint(1, max_literals_per_clause)
+        num_literals = random.randint(min_literals_per_clause, max_literals_per_clause)
         for _ in range(num_literals):
             variable = random.randint(1, num_variables)
             # Randomly negate some literals
@@ -26,10 +26,11 @@ def print_dimacs(cnf):
 
 
 if __name__ == "__main__":
-    num_variables = 4  # Change this to the desired number of variables
+    num_variables = 10  # Change this to the desired number of variables
     num_clauses = 10  # Change this to the desired number of clauses
-    max_literals_per_clause = 5  # Change this to the desired maximum number of literals per clause
-    seed = 57
+    max_literals_per_clause = 3  # Change this to the desired maximum number of literals per clause
+    min_literals_per_clause = 3  # Change this to the desired maximum number of literals per clause
+    seed = 420
 
     random.seed(seed)  # Set seed for reproducibility
 
@@ -37,7 +38,8 @@ if __name__ == "__main__":
     print(f"c NUM_VARIABLES = {num_variables}")
     print(f"c NUM_CLAUSES = {num_clauses}")
     print(f"c MAX_LITERALS_PER_CLAUSE = {max_literals_per_clause}")
+    print(f"c MIN_LITERALS_PER_CLAUSE = {min_literals_per_clause}")
     print(f"c SEED = {seed}")
 
-    cnf_instance = generate_cnf(num_variables, num_clauses, max_literals_per_clause)
+    cnf_instance = generate_cnf(num_variables, num_clauses, min_literals_per_clause, max_literals_per_clause)
     print_dimacs(cnf_instance)

@@ -2,66 +2,107 @@ use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
 use crate::problem::sat::reducer::QuboToSatReduction;
 use crate::problem::sat::{KSatProblem, SatSolution, SatVariable};
 use nalgebra::DVector;
-use nalgebra_sparse::{CooMatrix, CsrMatrix};
 
 pub struct Chancellor(usize);
 
-impl QuboToSatReduction for Chancellor {
-    fn reduce(sat_problem: &KSatProblem) -> (QuboProblem, Self) {
-        const J: QuboType = 100;
-        const J_A: QuboType = J;
-        const H: QuboType = -J_A;
-        const G: QuboType = 5; // NB G <<
+pub fn implement_clause(
+    problem_size: usize,
+    mut triplets: Vec<(usize, usize, QuboType)>,
+    mut biases: Vec<(usize, QuboType)>,
+    clause: &[SatVariable],
+) -> (usize, Vec<(usize, usize, QuboType)>, Vec<(usize, QuboType)>) {
+    if clause.len() == 3 {
+        const J: QuboType = 5;
+        const J_A: QuboType = 2 * J;
+        const G: QuboType = 1;
+        const H: QuboType = G;
+        const H_A : QuboType = 2 * H;
 
-        let &KSatProblem {
-            nb_vars,
-            ref clause_list,
-        } = sat_problem;
+        let var_a = problem_size;
 
-        let num_ancillae: usize = clause_list.iter().map(|x| x.len()).sum();
-        let total_clauses = nb_vars + num_ancillae;
+        let mut c_a = 1;
+        for (i, &SatVariable(is_true_i, var_i)) in clause.iter().enumerate() {
+            let c_i = 2 * (is_true_i as QuboType) - 1;
 
-        let mut q_matrix = CooMatrix::new(total_clauses, total_clauses);
-        let mut new_var_counter = 0;
+            // single terms (a_i)
+            // TODO THIS IS WRONG
+            // biases.push((var_i, - 1));
+            // biases.push((var_i, J));
+            // biases.push((var_i, - J + 1));
+            
 
-        for clause in clause_list.iter() {
-            for (i, SatVariable(is_true_i, var_i)) in clause.iter().cloned().enumerate() {
-                let c_i = 2 * (is_true_i as QuboType) - 1;
-
-                for (j, SatVariable(is_true_j, var_j)) in clause.iter().take(i).cloned().enumerate()
-                {
-                    // First section
-                    let c_j = 2 * (is_true_j as QuboType) - 1;
-                    if var_i < var_j {
-                        q_matrix.push(var_i, var_j, J * c_i * c_j);
-                    } else {
-                        q_matrix.push(var_j, var_i, J * c_i * c_j);
-                    }
-
-                    // Auxiliary variable section one
-                    let j_a = nb_vars + new_var_counter + j;
-                    q_matrix.push(var_i, j_a, J * c_i);
-                }
-
-                // Second Section
-                q_matrix.push(var_i, var_i, H * c_i);
-
-                // Auxiliary Variable section one
-                let i_a = nb_vars + new_var_counter + i;
-
-                let q_i = if i == 0 { G / 2 } else { 0 };
-
-                let h_a_i = -J_A * ((2 * i as QuboType) - clause.len() as QuboType) + q_i;
-
-                q_matrix.push(i_a, i_a, h_a_i);
+            // double terms - (a_i)(a_j)
+            // THIS IS RIGHT
+            for &SatVariable(_, var_j) in &clause[(i + 1)..] {
+                triplets.push((var_i, var_j, - 1));
+                triplets.push((var_i, var_j, - J));
             }
+            
+            // triple term
+            // TODO THIS IS WRONG
+            biases.push((var_i, H * c_i));
+            triplets.push((var_i, var_a, - J_A));
 
-            new_var_counter += clause.len();
+            c_a *= c_i;
+        }
+        // + h^a sigma_a^z
+        println!("{}/{}", H_A, c_a);
+        biases.push((var_a, H_A * c_a));
+
+        // println!("{triplets:?}");
+
+        (problem_size + 1, triplets, biases)
+    } else {
+        todo!()
+        // // For clause var
+        // for (i, &SatVariable(is_true_i, var_i)) in clause.iter().enumerate() {
+        //     let c_i = 2 * (is_true_i as QuboType) - 1;
+        //
+        //     // Initialise this clause
+        //     triplets.push((var_i, var_i, H * 2 * c_i));
+        //     for (j, &SatVariable(is_true_j, var_j)) in clause.iter().enumerate() {
+        //         // Bind it to the other clauses
+        //         let c_j = 2 * (is_true_j as QuboType) - 1;
+        //         if j < i {
+        //             if var_i < var_j {
+        //                 triplets.push((var_i, var_j, 4 * J * c_i * c_j));
+        //             } else {
+        //                 triplets.push((var_j, var_i, 4 * J * c_i * c_j));
+        //             }
+        //             triplets.push((var_j, var_j, -2 * J * c_i * c_j));
+        //             triplets.push((var_i, var_i, -2 * J * c_i * c_j));
+        //         }
+        //
+        //         // Bind to auxiliary variable
+        //         triplets.push((var_j, problem_size, 4 * J_A * c_i));
+        //         triplets.push((var_j, problem_size, -2 * J_A * c_i));
+        //         triplets.push((var_i, problem_size, -2 * J_A * c_i));
+        //     }
+        //
+        //     triplets.push((var_i, problem_size, 2 * c_i * J_A));
+        // }
+        //
+        // // Create auxiliary variable
+        // triplets.push((problem_size, problem_size, H_A));
+    }
+}
+
+impl QuboToSatReduction for Chancellor {
+    fn reduce(&KSatProblem { nb_vars, ref clause_list }: &KSatProblem) -> (QuboProblem, Self) {
+        let mut problem_size = nb_vars;
+        let mut j_triplets = Vec::new();
+        let mut j_biases = Vec::new();
+
+        for clause in clause_list {
+            (problem_size, j_triplets, j_biases) = implement_clause(problem_size, j_triplets, j_biases, clause);
         }
 
-        assert_eq!(num_ancillae, new_var_counter);
+        let (q_matrix, _) = QuboProblem::try_from_hamiltonian_triplets(problem_size, j_triplets, j_biases)
+            .expect("Matrix should be properly constructed.");
+
+        // assert_eq!(num_ancillae, new_var_counter);
         (
-            QuboProblem::try_from_q_matrix(CsrMatrix::from(&q_matrix)).unwrap(),
+            q_matrix,
             Self(nb_vars),
         )
     }

@@ -1,6 +1,7 @@
 mod chancellor;
 mod choi;
 mod nusslein;
+mod nusslein23;
 
 use crate::problem::qubo::{QuboProblem, QuboSolution};
 use crate::problem::sat::{KSatProblem, SatSolution};

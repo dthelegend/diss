@@ -1,7 +1,8 @@
-use nalgebra::{DMatrix, DVector};
-use nalgebra_sparse::{CooMatrix, CsrMatrix, SparseFormatError};
 use std::fmt::{Debug, Formatter};
 use std::iter::zip;
+
+use nalgebra::{DMatrix, DVector};
+use nalgebra_sparse::{CooMatrix, CsrMatrix, SparseFormatError};
 use thiserror::Error;
 
 #[cfg(test)]
@@ -14,7 +15,6 @@ pub mod helpers;
 pub type QuboType = i32;
 
 pub struct QuboProblem(CsrMatrix<QuboType>, usize);
-
 
 #[derive(Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
@@ -35,9 +35,7 @@ pub enum QuboError {
     #[error("The provided Q Matrix has an invalid triplet: {0}")]
     InvalidTriplets(#[from] SparseFormatError),
     #[error("The provided Q Matrix has a non-square size")]
-    IncorrectSize,
-    #[error("The provided Q Matrix is not upper triangular")]
-    NotTriangular,
+    IncorrectSize
 }
 
 impl QuboProblem {
@@ -45,19 +43,20 @@ impl QuboProblem {
         let n_rows = q_matrix.nrows();
         if n_rows != q_matrix.ncols() {
             Err(QuboError::IncorrectSize)
-        } else if q_matrix.upper_triangle() != q_matrix {
-            Err(QuboError::NotTriangular)
         } else {
             let modified_q_matrix = q_matrix.transpose() - q_matrix.diagonal_as_csr() + q_matrix;
             Ok(QuboProblem(modified_q_matrix, n_rows))
         }
     }
-    
+
     pub fn try_from_coo_matrix(coo_matrix: &CooMatrix<QuboType>) -> Result<Self, QuboError> {
         QuboProblem::try_from_q_matrix(CsrMatrix::from(coo_matrix))
     }
-    
-    pub fn try_from_triplets(problem_size : usize, triplets: Vec<(usize, usize, QuboType)>) -> Result<Self, QuboError> {
+
+    pub fn try_from_triplets(
+        problem_size: usize,
+        triplets: Vec<(usize, usize, QuboType)>,
+    ) -> Result<Self, QuboError> {
         let (row_indices, col_indices, values) = {
             let trip_len = triplets.len();
             triplets.into_iter().fold(
@@ -87,30 +86,32 @@ impl QuboProblem {
         QuboProblem::try_from_coo_matrix(&m)
     }
 
-    pub fn try_from_hamiltonian_triplets(problem_size: usize, j_triplets: Vec<(usize, usize, QuboType)>, j_biases: Vec<(usize, QuboType)>) -> Result<(Self, QuboType), QuboError> {
+    pub fn try_from_ising_triplets(
+        problem_size: usize,
+        j_triplets: Vec<(usize, usize, QuboType)>,
+        j_biases: Vec<(usize, QuboType)>,
+    ) -> Result<(Self, QuboType), QuboError> {
         let mut q_matrix = CooMatrix::new(problem_size, problem_size);
-        
+
         let mut offset = 0;
         for (i, b) in j_biases {
             q_matrix.push(i, i, 2 * b);
             offset -= b;
         }
-        
+
         for (i, j, b) in j_triplets {
-            if b == 0 { continue }
-            if i < j {
-                q_matrix.push(i, j, 4 * b);
-            } else {
-                q_matrix.push(j, i, 4 * b);
+            if b == 0 {
+                continue;
             }
-            q_matrix.push(i, i, - 2 * b);
-            q_matrix.push(j, j, - 2 * b);
-            
+            q_matrix.push(i, j, 4 * b);
+            q_matrix.push(i, i, -2 * b);
+            q_matrix.push(j, j, -2 * b);
+
             offset += b;
         }
-        
+
         QuboProblem::try_from_coo_matrix(&q_matrix)
-            .map(|QuboProblem(x, i)| (QuboProblem(- x, i), offset))
+            .map(|x| (x, offset))
     }
 
     pub fn get_size(&self) -> usize {
@@ -121,8 +122,7 @@ impl QuboProblem {
         let QuboProblem(q_matrix, _) = self;
 
         // Matrix math is associative, and only csr * dense is implemented
-        let xqx =
-            solution_vector.transpose() * (q_matrix * solution_vector);
+        let xqx = solution_vector.transpose() * (q_matrix * solution_vector);
         *xqx.get((0, 0))
             .expect("If dimensions match the final matrix is a 1x1 matrix")
     }

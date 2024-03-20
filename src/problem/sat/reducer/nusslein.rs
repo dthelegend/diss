@@ -32,14 +32,14 @@ fn implement_clause(
             ));
 
             (problem_size, constant_factor, triplets)
-        },
+        }
         // OR(C)
         [SatVariable(true, var_i), SatVariable(true, var_j)] => {
             // 1 - x_i - x_j + (x_i)(x_j)
             constant_factor += 1;
             triplets.push((var_i, var_i, -UNIT_PENALTY)); // -x_i
             triplets.push((var_j, var_j, -UNIT_PENALTY)); // -x_j
-            // + (x_i)(x_j)
+                                                          // + (x_i)(x_j)
             if var_i < var_j {
                 triplets.push((var_i, var_j, UNIT_PENALTY));
             } else {
@@ -47,11 +47,11 @@ fn implement_clause(
             }
 
             (problem_size, constant_factor, triplets)
-        },
+        }
         [SatVariable(true, var_i), SatVariable(false, var_j)] => {
             // x_j - (x_i)(x_j)
             triplets.push((var_j, var_j, UNIT_PENALTY)); // x_j
-            // - (x_i)(x_j)
+                                                         // - (x_i)(x_j)
             if var_i < var_j {
                 triplets.push((var_i, var_j, -UNIT_PENALTY));
             } else {
@@ -63,7 +63,7 @@ fn implement_clause(
         [SatVariable(false, var_i), SatVariable(true, var_j)] => {
             // x_i - (x_j)(x_i)
             triplets.push((var_i, var_i, UNIT_PENALTY)); // x_i
-            // - (x_i)(x_j)
+                                                         // - (x_i)(x_j)
             if var_i < var_j {
                 triplets.push((var_i, var_j, -UNIT_PENALTY));
             } else {
@@ -83,8 +83,78 @@ fn implement_clause(
             (problem_size, constant_factor, triplets)
         }
         // 3-SAT(C)
-        [c_0, c_1, c_2] => {
-            todo!()
+        // 3-SAT special cases
+        [SatVariable(true, var_i), SatVariable(true, var_j), SatVariable(true, var_k)] => {
+            if var_i < var_j {
+                triplets.push((var_i, var_j, 2));
+            } else {
+                triplets.push((var_j, var_i, 2));
+            }
+            triplets.push((var_i, problem_size, -2));
+            triplets.push((var_j, problem_size, -2));
+            triplets.push((var_k, var_k, -1));
+            triplets.push((var_k, problem_size, 1));
+            triplets.push((problem_size, problem_size, 1));
+
+            (problem_size + 1, constant_factor, triplets)
+        }
+        [SatVariable(true, var_i), SatVariable(true, var_j), SatVariable(false, var_k)]
+        | [SatVariable(true, var_i), SatVariable(false, var_k), SatVariable(true, var_j)]
+        | [SatVariable(false, var_k), SatVariable(true, var_i), SatVariable(true, var_j)] => {
+            if var_i < var_j {
+                triplets.push((var_i, var_j, 2));
+            } else {
+                triplets.push((var_j, var_i, 2));
+            }
+            triplets.push((var_i, problem_size, -2));
+            triplets.push((var_j, problem_size, -2));
+            triplets.push((var_k, var_k, 1));
+            triplets.push((var_k, problem_size, -1));
+            triplets.push((problem_size, problem_size, 2));
+
+            (problem_size + 1, constant_factor, triplets)
+        }
+        [SatVariable(true, var_i), SatVariable(false, var_j), SatVariable(false, var_k)]
+        | [SatVariable(false, var_j), SatVariable(false, var_k), SatVariable(true, var_i)]
+        | [SatVariable(false, var_j), SatVariable(true, var_i), SatVariable(false, var_k)] => {
+            triplets.push((var_i, var_i, 2));
+            if var_i < var_j {
+                triplets.push((var_i, var_j, -2));
+            } else {
+                triplets.push((var_j, var_i, -2));
+            }
+            triplets.push((var_i, problem_size, -2));
+            triplets.push((var_j, problem_size, 2));
+            triplets.push((var_k, var_k, 1));
+            triplets.push((var_k, problem_size, -1));
+
+            (problem_size + 1, constant_factor, triplets)
+        }
+        [SatVariable(false, var_j), SatVariable(false, var_i), SatVariable(false, var_k)] => {
+            triplets.push((var_i, var_i, -1));
+            if var_i < var_j {
+                triplets.push((var_i, var_j, 1));
+            } else {
+                triplets.push((var_j, var_i, 1));
+            }
+            if var_i < var_k {
+                triplets.push((var_i, var_k, 1));
+            } else {
+                triplets.push((var_k, var_i, 1));
+            }
+            triplets.push((var_i, problem_size, 1));
+            triplets.push((var_j, var_j, -1));
+            if var_j < var_k {
+                triplets.push((var_j, var_k, 1));
+            } else {
+                triplets.push((var_k, var_j, 1));
+            }
+            triplets.push((var_j, problem_size, 1));
+            triplets.push((var_k, var_k, -1));
+            triplets.push((var_k, problem_size, 1));
+            triplets.push((problem_size, problem_size, 1));
+
+            (problem_size + 1, constant_factor, triplets)
         }
         // Formula 6
         ref clause => {
@@ -125,8 +195,12 @@ fn implement_clause(
 }
 
 impl QuboToSatReduction for Nusslein {
-    fn reduce(&KSatProblem { nb_vars, ref clause_list, }: &KSatProblem) -> (QuboProblem, Self) {
-
+    fn reduce(
+        &KSatProblem {
+            nb_vars,
+            ref clause_list,
+        }: &KSatProblem,
+    ) -> (QuboProblem, Self) {
         let mut problem_size = nb_vars;
         let mut triplets = Vec::new();
         let mut constant_factor = 0;

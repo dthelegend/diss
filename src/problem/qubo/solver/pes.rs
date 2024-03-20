@@ -52,12 +52,9 @@ fn generate_prefixes(
 impl QuboSolver for ParallelExhaustiveSearch {
     fn solve(&mut self, qubo_problem: QuboProblem) -> QuboSolution {
         // TODO infer this from system available parallelism
-        const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32 * 16;
+        const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 64;
 
-        if log_enabled!(Warn)
-            && qubo_problem.get_size()
-                > BIGGEST_REASONABLE_SEARCH_SIZE
-        {
+        if log_enabled!(Warn) && qubo_problem.get_size() > BIGGEST_REASONABLE_SEARCH_SIZE {
             warn!("Exhaustive Searches greater than {BIGGEST_REASONABLE_SEARCH_SIZE} can take extremely long amounts of time! (This algorithm runs in exponential time, but it is provably optimal!)")
         }
 
@@ -67,6 +64,7 @@ impl QuboSolver for ParallelExhaustiveSearch {
             .collect();
 
         let mut solution_list = vec![(start_solution, delta_j_precalcs, 0)];
+        
         let sub_tree_size = qubo_problem.get_size() - self.beta;
         solution_list = generate_prefixes(
             &qubo_problem,

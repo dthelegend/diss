@@ -1,4 +1,4 @@
-mod problem;
+pub mod problem;
 
 use crate::problem::qubo::solver::{
     ExhaustiveSearch, ParallelExhaustiveSearch, QuboSolver, SimulatedAnnealer,

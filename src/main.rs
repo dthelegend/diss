@@ -77,9 +77,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     trace!("Reduced problem produced {:?}", qubo_problem);
 
     let mut solver = {
-        SimulatedAnnealer::new_with_thread_rng(1_000)
+        // SimulatedAnnealer::new_with_thread_rng(10_000)
         // ExhaustiveSearch::new()
-        // ParallelExhaustiveSearch::new(5) // TODO Allow this to be set by CLI arg
+        ParallelExhaustiveSearch::new(5) // TODO Allow this to be set by CLI arg
     };
 
     let qubo_solution = solver.solve(qubo_problem);

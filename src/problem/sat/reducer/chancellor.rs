@@ -18,6 +18,8 @@ pub fn implement_clause(
         const H: QuboType = G;
         const H_A: QuboType = 2 * H;
 
+        let mut test_biases = Vec::new();
+
         let var_a = problem_size;
         let mut c_a = -1;
 
@@ -26,8 +28,9 @@ pub fn implement_clause(
 
             c_a *= c_i;
 
+            test_biases.push((var_i, H * c_i));
             for &SatVariable(is_true_j, var_j) in &clause[(i + 1)..] {
-                let c_j = 2 * (is_true_j as QuboType) - 1;
+                let c_j = 2 * H * (is_true_j as QuboType) - 1;
 
                 // This line is correct
                 triplets.push((var_i, var_j, J + H * c_i * c_j));
@@ -41,58 +44,17 @@ pub fn implement_clause(
         // This is correct
         biases.push((var_a, H_A * c_a));
 
-        {
-            // TODO replace hard coded with a real calculation
-            match clause[..] {
-                [SatVariable(true, var_i), SatVariable(true, var_j), SatVariable(true, var_k)] => {
-                    biases.push((var_i, -2));
-                    biases.push((var_j, -2));
-                    biases.push((var_k, -2));
-                }
-                [SatVariable(false, var_i), SatVariable(false, var_j), SatVariable(false, var_k)] =>
-                {
-                    biases.push((var_i, 2));
-                    biases.push((var_j, 2));
-                    biases.push((var_k, 2));
-                }
-                [SatVariable(true, var_i), SatVariable(true, var_j), SatVariable(true, var_k)] => {
-                    biases.push((var_i, 2));
-                    biases.push((var_j, 2));
-                    biases.push((var_k, 2));
-                }
-                [SatVariable(true, var_i), SatVariable(true, var_j), SatVariable(false, var_k)] => {
-                    biases.push((var_i, 0));
-                    biases.push((var_j, 0));
-                    biases.push((var_k, 2));
-                }
-                [SatVariable(true, var_i), SatVariable(false, var_j), SatVariable(true, var_k)] => {
-                    biases.push((var_i, 0));
-                    biases.push((var_j, 2));
-                    biases.push((var_k, 0));
-                }
-                [SatVariable(false, var_i), SatVariable(true, var_j), SatVariable(true, var_k)] => {
-                    biases.push((var_i, 2));
-                    biases.push((var_j, 0));
-                    biases.push((var_k, 0));
-                }
-                [SatVariable(true, var_i), SatVariable(false, var_j), SatVariable(false, var_k)] => {
-                    biases.push((var_i, -2));
-                    biases.push((var_j, 0));
-                    biases.push((var_k, 0));
-                }
-                [SatVariable(false, var_i), SatVariable(true, var_j), SatVariable(false, var_k)] => {
-                    biases.push((var_i, 0));
-                    biases.push((var_j, -2));
-                    biases.push((var_k, 0));
-                }
-                [SatVariable(false, var_i), SatVariable(false, var_j), SatVariable(true, var_k)] => {
-                    biases.push((var_i, 0));
-                    biases.push((var_j, 0));
-                    biases.push((var_k, -2));
-                }
-                _ => unreachable!(),
-            }
-        }
+        let [SatVariable(is_true_i, var_i), SatVariable(is_true_j, var_j), SatVariable(is_true_k, var_k)] = clause[..] else {
+            unreachable!()
+        };
+
+        let c_i = 2 * (is_true_i as QuboType) - 1;
+        let c_j = 2 * (is_true_j as QuboType) - 1;
+        let c_k = 2 * (is_true_k as QuboType) - 1;
+
+        biases.push((var_i, - 2 * c_i * !(is_true_j ^ is_true_k) as QuboType));
+        biases.push((var_j, - 2 * c_j * !(is_true_i ^ is_true_k) as QuboType));
+        biases.push((var_k, - 2 * c_k * !(is_true_i ^ is_true_j) as QuboType));
 
         (problem_size + 1, triplets, biases)
     } else {

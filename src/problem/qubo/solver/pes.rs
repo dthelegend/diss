@@ -1,3 +1,4 @@
+use std::usize;
 use crate::problem::qubo::solver::es::{calculate_deltas_i, exhaustive_search_helper};
 use crate::problem::qubo::solver::QuboSolver;
 use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
@@ -51,10 +52,9 @@ fn generate_prefixes(
 
 impl QuboSolver for ParallelExhaustiveSearch {
     fn solve(&mut self, qubo_problem: QuboProblem) -> QuboSolution {
-        // TODO infer this from system available parallelism
-        const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 64;
+        const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
 
-        if log_enabled!(Warn) && qubo_problem.get_size() > BIGGEST_REASONABLE_SEARCH_SIZE {
+        if log_enabled!(Warn) && qubo_problem.get_size() > BIGGEST_REASONABLE_SEARCH_SIZE * (usize::BITS - std::thread::available_parallelism().unwrap().get().leading_zeros()) as usize{
             warn!("Exhaustive Searches greater than {BIGGEST_REASONABLE_SEARCH_SIZE} can take extremely long amounts of time! (This algorithm runs in exponential time, but it is provably optimal!)")
         }
 

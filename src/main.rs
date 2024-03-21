@@ -69,15 +69,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (qubo_problem, up_modeller) = {
         // Choi::reduce(&problem)
-        Chancellor::reduce(&problem)
-        // Nusslein::reduce(&problem)
+        // Chancellor::reduce(&problem)
+        Nusslein::reduce(&problem)
     };
 
     debug!("Reduced problem size is {}", qubo_problem.get_size());
     trace!("Reduced problem produced {:?}", qubo_problem);
 
     let mut solver = {
-        // SimulatedAnnealer::new_with_thread_rng(10_000)
+        // SimulatedAnnealer::new_with_thread_rng(100_000_000)
         // ExhaustiveSearch::new()
         ParallelExhaustiveSearch::new(5) // TODO Allow this to be set by CLI arg
     };

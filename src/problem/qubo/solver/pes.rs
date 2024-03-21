@@ -64,7 +64,7 @@ impl QuboSolver for ParallelExhaustiveSearch {
             .collect();
 
         let mut solution_list = vec![(start_solution, delta_j_precalcs, 0)];
-        
+
         let sub_tree_size = qubo_problem.get_size() - self.beta;
         solution_list = generate_prefixes(
             &qubo_problem,

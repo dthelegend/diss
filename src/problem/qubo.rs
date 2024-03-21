@@ -35,7 +35,7 @@ pub enum QuboError {
     #[error("The provided Q Matrix has an invalid triplet: {0}")]
     InvalidTriplets(#[from] SparseFormatError),
     #[error("The provided Q Matrix has a non-square size")]
-    IncorrectSize
+    IncorrectSize,
 }
 
 impl QuboProblem {
@@ -44,8 +44,7 @@ impl QuboProblem {
         if n_rows != q_matrix.ncols() {
             Err(QuboError::IncorrectSize)
         } else {
-            let modified_q_matrix = q_matrix.transpose() - q_matrix.diagonal_as_csr() + q_matrix;
-            Ok(QuboProblem(modified_q_matrix, n_rows))
+            Ok(QuboProblem(q_matrix.transpose() + q_matrix, n_rows))
         }
     }
 
@@ -110,8 +109,7 @@ impl QuboProblem {
             offset += b;
         }
 
-        QuboProblem::try_from_coo_matrix(&q_matrix)
-            .map(|x| (x, offset))
+        QuboProblem::try_from_coo_matrix(&q_matrix).map(|QuboProblem(x, i)| (QuboProblem(x,i), offset))
     }
 
     pub fn get_size(&self) -> usize {

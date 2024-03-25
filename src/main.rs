@@ -69,8 +69,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (qubo_problem, up_modeller) = {
         // Choi::reduce(&problem)
-        Chancellor::reduce(&problem)
-        // Nusslein::reduce(&problem)
+        // Chancellor::reduce(&problem)
+        Nusslein::reduce(&problem)
     };
 
     debug!("Reduced problem size is {}", qubo_problem.get_size());

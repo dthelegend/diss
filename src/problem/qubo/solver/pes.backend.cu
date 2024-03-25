@@ -13,9 +13,9 @@ void flip_each(
 ) {
     *eval += deltas[i];
     for (size_t j = 0; j < i; j++) {
-        deltas[i] += qubo_problem[j * problem_size + i] * (2 * solution_list[i] - 1) * (2 * solution_list[j] - 1);
+        deltas[j] += 2 * qubo_problem[j * problem_size + i] * (2 * solution_list[i] - 1) * (2 * solution_list[j] - 1);
     }
-    deltas[i] = -deltas[i];
+    deltas[i] = - deltas[i];
     solution_list[i] = 1 - solution_list[i];
 }
 
@@ -59,17 +59,20 @@ __host__ void search(
     if (i == 0) {
         // Check all values for minimum
         // This could in theory be parallelised to log n, but the constant factor tends to be relatively small
-        for (size_t i = 0; i < n; i++) {
-            if (eval_list[i] < *best_evaluation) {
-                *best_evaluation = eval_list[i];
-                std::cout << "Wowie from " << i << std::endl;
-                for (int j = 0; j < problem_size; j++)
-                    std::cout << (solution_list + (i * problem_size))[j];
-                std::cout << std::endl;
+        qubo_t best_temp_eval = *best_evaluation;
+        ssize_t term_to_replace = -1;
 
-                cudaMemcpy(best_solution, solution_list + (i * problem_size), problem_size, cudaMemcpyDefault);
+        for (size_t i = 0; i < n; i++) {
+            if (eval_list[i] < best_temp_eval) {
+                term_to_replace = i;
             }
         }
+
+        if (term_to_replace >= 0) {
+            cudaMemcpy(best_evaluation, eval_list + term_to_replace, sizeof(qubo_t), cudaMemcpyDefault);
+            cudaMemcpy(best_solution, solution_list + (term_to_replace * problem_size), problem_size * sizeof(qubo_t), cudaMemcpyDefault);
+        }
+
         return;
     }
     

@@ -2,7 +2,6 @@ use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
 use crate::problem::sat::reducer::QuboToSatReduction;
 use crate::problem::sat::{KSatProblem, SatSolution, SatVariable};
 use nalgebra::DVector;
-use nalgebra_sparse::{CooMatrix, CsrMatrix};
 
 pub struct Nusslein {
     constant_factor: QuboType,

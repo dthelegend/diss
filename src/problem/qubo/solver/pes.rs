@@ -13,7 +13,7 @@ mod pes_gpu {
 
     use nalgebra::DVector;
 
-    use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
+    use crate::problem::{self, qubo::{QuboProblem, QuboSolution, QuboType}};
 
     #[link(name = "pes")]
     extern "C" {
@@ -40,6 +40,7 @@ mod pes_gpu {
                 (Vec::new(), Vec::new(), Vec::new()),
                 |(mut sf, mut df, mut ef), (s, mut d, e)| {
                     sf.extend_from_slice(s.0.as_slice());
+                    d.resize(problem.get_size(), 0);
                     df.append(&mut d);
                     ef.push(e);
                     
@@ -94,10 +95,12 @@ fn generate_prefixes(
 
     let new_solutions = solution_list
         .into_par_iter()
-        .flat_map(|(solution, deltas, eval)| {
+        .flat_map(|(solution, mut deltas, eval)| {
             let deltas_i: Vec<_> = calculate_deltas_i(problem, &solution, &deltas, i);
             let eval_i = eval + deltas[i - 1];
             let solution_i = solution.flip(i - 1);
+
+            deltas.truncate(deltas_i.len());
 
             [(solution, deltas, eval), (solution_i, deltas_i, eval_i)]
         })

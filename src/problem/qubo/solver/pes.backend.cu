@@ -144,7 +144,9 @@ extern "C" void run_pes_solver(
 
     int n = 1 << (problem_size - i - 1);
     int num_blocks = (n + block_size - 1) / block_size;
-
+    
+    // TODO Throw an exception if the memory cannot b alloc'd
+    
     qubo_t* cuda_qubo_problem;
     cudaMallocManaged(&cuda_qubo_problem, problem_size * problem_size * sizeof(qubo_t));
     cudaMemcpy(cuda_qubo_problem, qubo_problem, problem_size * problem_size * sizeof(qubo_t), cudaMemcpyHostToDevice);

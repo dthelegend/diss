@@ -69,8 +69,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (qubo_problem, up_modeller) = {
         // Choi::reduce(&problem)
-        Chancellor::reduce(&problem)
-        // Nusslein::reduce(&problem)
+        // Chancellor::reduce(&problem)
+        Nusslein::reduce(&problem)
     };
 
     debug!("Reduced problem size is {}", qubo_problem.get_size());
@@ -80,7 +80,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
         // ParallelExhaustiveSearch::new(5)
-        ParallelExhaustiveSearch::with_cuda(7)
+        ParallelExhaustiveSearch::with_cuda(11)
     };
 
     let qubo_solution = solver.solve(qubo_problem);

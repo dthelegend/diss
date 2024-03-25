@@ -69,17 +69,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (qubo_problem, up_modeller) = {
         // Choi::reduce(&problem)
-        // Chancellor::reduce(&problem)
-        Nusslein::reduce(&problem)
+        Chancellor::reduce(&problem)
+        // Nusslein::reduce(&problem)
     };
 
     debug!("Reduced problem size is {}", qubo_problem.get_size());
     trace!("Reduced problem produced {:?}", qubo_problem);
 
-    let mut solver = {
-        // SimulatedAnnealer::new_with_thread_rng(100_000_000)
+    let mut solver = { // TODO Allow this to be set by CLI arg
+        // SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
-        ParallelExhaustiveSearch::new(5) // TODO Allow this to be set by CLI arg
+        // ParallelExhaustiveSearch::new(5)
+        ParallelExhaustiveSearch::with_cuda(7)
     };
 
     let qubo_solution = solver.solve(qubo_problem);

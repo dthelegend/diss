@@ -6,4 +6,5 @@ fn main() {
         .file("src/problem/qubo/solver/pes.backend.cu")
         .emit_rerun_if_env_changed(true)
         .compile("pes");
+    println!("cargo:rerun-if-changed=src/**/*.cu")
 }

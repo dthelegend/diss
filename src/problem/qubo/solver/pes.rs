@@ -1,4 +1,3 @@
-use std::usize;
 use crate::problem::qubo::solver::es::{calculate_deltas_i, exhaustive_search_helper};
 use crate::problem::qubo::solver::pes::pes_gpu::gpu_search_helper;
 use crate::problem::qubo::solver::QuboSolver;
@@ -7,13 +6,18 @@ use log::Level::Warn;
 use log::{debug, log_enabled, warn};
 use nalgebra::DVector;
 use rayon::prelude::*;
+use std::usize;
 
 mod pes_gpu {
+    use log::trace;
     use std::ffi::c_int;
 
     use nalgebra::DVector;
 
-    use crate::problem::{self, qubo::{QuboProblem, QuboSolution, QuboType}};
+    use crate::problem::{
+        self,
+        qubo::{QuboProblem, QuboSolution, QuboType},
+    };
 
     #[link(name = "pes")]
     extern "C" {
@@ -26,27 +30,39 @@ mod pes_gpu {
             deltas: *const QuboType,
             solution_list: *const QuboType,
             eval_list: *const QuboType,
-            i: usize);
+            i: usize,
+        );
     }
 
-    pub fn gpu_search_helper(num_blocks: i32, problem: &QuboProblem, solution_list: Vec<(QuboSolution, Vec<QuboType>, QuboType)>, i: usize) -> (QuboSolution, QuboType) {
+    pub fn gpu_search_helper(
+        num_blocks: i32,
+        problem: &QuboProblem,
+        solution_list: Vec<(QuboSolution, Vec<QuboType>, QuboType)>,
+        i: usize,
+    ) -> (QuboSolution, QuboType) {
         let mut solution_vector = DVector::zeros(problem.get_size());
         let mut best_eval: QuboType = 0;
 
         let dense_problem = problem.get_dense();
 
-        let (solutions_flat, deltas_flat, evals_flat): (Vec<QuboType>, Vec<QuboType>, Vec<QuboType>)
-            = solution_list.into_iter().fold(
-                (Vec::new(), Vec::new(), Vec::new()),
-                |(mut sf, mut df, mut ef), (s, mut d, e)| {
-                    sf.extend_from_slice(s.0.as_slice());
-                    d.resize(problem.get_size(), 0);
-                    df.append(&mut d);
-                    ef.push(e);
-                    
-                    (sf, df, ef)
-                });
-        
+        let (solutions_flat, deltas_flat, evals_flat): (
+            Vec<QuboType>,
+            Vec<QuboType>,
+            Vec<QuboType>,
+        ) = solution_list.into_iter().fold(
+            (Vec::new(), Vec::new(), Vec::new()),
+            |(mut sf, mut df, mut ef), (s, mut d, e)| {
+                sf.extend_from_slice(s.0.as_slice());
+                d.resize(problem.get_size(), 0);
+                df.append(&mut d);
+                ef.push(e);
+
+                (sf, df, ef)
+            },
+        );
+
+        trace!("Entering external CUDA section");
+
         unsafe {
             run_pes_solver(
                 num_blocks,
@@ -57,8 +73,11 @@ mod pes_gpu {
                 deltas_flat.as_ptr(),
                 solutions_flat.as_ptr(),
                 evals_flat.as_ptr(),
-                i);
+                i,
+            );
         }
+
+        trace!("Exited external CUDA section");
 
         (QuboSolution(solution_vector), best_eval)
     }
@@ -66,16 +85,22 @@ mod pes_gpu {
 
 pub struct ParallelExhaustiveSearch {
     beta: usize,
-    use_cuda: bool, 
+    use_cuda: bool,
 }
 
 impl ParallelExhaustiveSearch {
     pub fn new(beta: usize) -> Self {
-        Self { beta, use_cuda: false }
+        Self {
+            beta,
+            use_cuda: false,
+        }
     }
 
     pub fn with_cuda(beta: usize) -> Self {
-        Self { beta, use_cuda: true }
+        Self {
+            beta,
+            use_cuda: true,
+        }
     }
 }
 
@@ -113,7 +138,15 @@ impl QuboSolver for ParallelExhaustiveSearch {
     fn solve(&mut self, qubo_problem: QuboProblem) -> QuboSolution {
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
 
-        if log_enabled!(Warn) && qubo_problem.get_size() > BIGGEST_REASONABLE_SEARCH_SIZE * (usize::BITS - std::thread::available_parallelism().unwrap().get().leading_zeros()) as usize{
+        if log_enabled!(Warn)
+            && qubo_problem.get_size()
+                > BIGGEST_REASONABLE_SEARCH_SIZE
+                    * (usize::BITS
+                        - std::thread::available_parallelism()
+                            .unwrap()
+                            .get()
+                            .leading_zeros()) as usize
+        {
             warn!("Exhaustive Searches greater than {BIGGEST_REASONABLE_SEARCH_SIZE} can take extremely long amounts of time! (This algorithm runs in exponential time, but it is provably optimal!)")
         }
 
@@ -157,7 +190,8 @@ impl QuboSolver for ParallelExhaustiveSearch {
                 solution_list.len() as i32,
                 &qubo_problem,
                 solution_list,
-                sub_tree_size)
+                sub_tree_size,
+            )
         };
 
         debug!(

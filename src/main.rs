@@ -1,7 +1,7 @@
 pub mod problem;
 
 use crate::problem::qubo::solver::{
-    ExhaustiveSearch, ParallelExhaustiveSearch, QuboSolver, SimulatedAnnealer,
+    ExhaustiveSearch, Mopso, ParallelExhaustiveSearch, QuboSolver, SimulatedAnnealer,
 };
 use crate::problem::sat::reducer::{Chancellor, Choi, Nusslein, QuboToSatReduction};
 use crate::problem::sat::SatSolution;
@@ -76,11 +76,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     debug!("Reduced problem size is {}", qubo_problem.get_size());
     trace!("Reduced problem produced {:?}", qubo_problem);
 
-    let mut solver = { // TODO Allow this to be set by CLI arg
+    let mut solver = {
+        // TODO Allow this to be set by CLI arg
         // SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
         // ParallelExhaustiveSearch::new(5)
-        ParallelExhaustiveSearch::with_cuda(11)
+        // ParallelExhaustiveSearch::with_cuda(11)
+        Mopso::new()
     };
 
     let qubo_solution = solver.solve(qubo_problem);

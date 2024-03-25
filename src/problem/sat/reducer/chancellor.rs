@@ -5,60 +5,61 @@ use nalgebra::DVector;
 
 pub struct Chancellor(usize);
 
+type ClauseTripletBias = (usize, Vec<(usize, usize, QuboType)>, Vec<(usize, QuboType)>);
+
 pub fn implement_clause(
     problem_size: usize,
     mut triplets: Vec<(usize, usize, QuboType)>,
     mut biases: Vec<(usize, QuboType)>,
     clause: &[SatVariable],
-) -> (usize, Vec<(usize, usize, QuboType)>, Vec<(usize, QuboType)>) {
-    if clause.len() == 3 {
-        const J: QuboType = 5;
-        const J_A: QuboType = 2 * J; // J_A = 2J > |H|
-        const G: QuboType = 1;
-        const H: QuboType = G;
-        const H_A: QuboType = 2 * H;
+) -> ClauseTripletBias {
+    match clause[..] {
+        ref c @
+        [SatVariable(is_true_i, var_i), SatVariable(is_true_j, var_j), SatVariable(is_true_k, var_k)] =>
+        {
+            const J: QuboType = 5;
+            const J_A: QuboType = 2 * J; // J_A = 2J > |H|
+            const G: QuboType = 1;
+            const H: QuboType = G;
+            const H_A: QuboType = 2 * H;
 
-        let mut test_biases = Vec::new();
+            let mut test_biases = Vec::new();
 
-        let var_a = problem_size;
-        let mut c_a = -1;
+            let var_a = problem_size;
+            let mut c_a = -1;
 
-        for (i, &SatVariable(is_true_i, var_i)) in clause.iter().enumerate() {
-            let c_i = 2 * (is_true_i as QuboType) - 1;
+            for (i, &SatVariable(is_true_i, var_i)) in clause.iter().enumerate() {
+                let c_i = 2 * (is_true_i as QuboType) - 1;
 
-            c_a *= c_i;
+                c_a *= c_i;
 
-            test_biases.push((var_i, H * c_i));
-            for &SatVariable(is_true_j, var_j) in &clause[(i + 1)..] {
-                let c_j = 2 * H * (is_true_j as QuboType) - 1;
+                test_biases.push((var_i, H * c_i));
+                for &SatVariable(is_true_j, var_j) in &clause[(i + 1)..] {
+                    let c_j = 2 * H * (is_true_j as QuboType) - 1;
+
+                    // This line is correct
+                    triplets.push((var_i, var_j, J + H * c_i * c_j));
+                }
 
                 // This line is correct
-                triplets.push((var_i, var_j, J + H * c_i * c_j));
+                triplets.push((var_i, var_a, J_A));
             }
 
-            // This line is correct
-            triplets.push((var_i, var_a, J_A));
+            // + h^a sigma_a^z
+            // This is correct
+            biases.push((var_a, H_A * c_a));
+
+            let c_i = 2 * (is_true_i as QuboType) - 1;
+            let c_j = 2 * (is_true_j as QuboType) - 1;
+            let c_k = 2 * (is_true_k as QuboType) - 1;
+
+            biases.push((var_i, -2 * c_i * !(is_true_j ^ is_true_k) as QuboType));
+            biases.push((var_j, -2 * c_j * !(is_true_i ^ is_true_k) as QuboType));
+            biases.push((var_k, -2 * c_k * !(is_true_i ^ is_true_j) as QuboType));
+
+            (problem_size + 1, triplets, biases)
         }
-
-        // + h^a sigma_a^z
-        // This is correct
-        biases.push((var_a, H_A * c_a));
-
-        let [SatVariable(is_true_i, var_i), SatVariable(is_true_j, var_j), SatVariable(is_true_k, var_k)] = clause[..] else {
-            unreachable!()
-        };
-
-        let c_i = 2 * (is_true_i as QuboType) - 1;
-        let c_j = 2 * (is_true_j as QuboType) - 1;
-        let c_k = 2 * (is_true_k as QuboType) - 1;
-
-        biases.push((var_i, - 2 * c_i * !(is_true_j ^ is_true_k) as QuboType));
-        biases.push((var_j, - 2 * c_j * !(is_true_i ^ is_true_k) as QuboType));
-        biases.push((var_k, - 2 * c_k * !(is_true_i ^ is_true_j) as QuboType));
-
-        (problem_size + 1, triplets, biases)
-    } else {
-        unimplemented!()
+        _ => unimplemented!(),
     }
 }
 

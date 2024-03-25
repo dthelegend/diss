@@ -43,7 +43,7 @@ void flip(
     }
 }
 
-__host__ void search(
+void search(
     const size_t n,
     const int num_blocks,
     const int block_size,
@@ -100,8 +100,6 @@ __host__ void search(
         i - 1
     );
 
-    cudaDeviceSynchronize();
-
     search(
         n,
         num_blocks,
@@ -125,8 +123,6 @@ __host__ void search(
         eval_list,
         i - 1
     );
-
-    cudaDeviceSynchronize();
 }
 
 extern "C" void run_pes_solver(
@@ -140,8 +136,6 @@ extern "C" void run_pes_solver(
     const qubo_t* eval_list,
     const size_t i
 ) {
-    std::cout << "Hello from CUDA!" << std::endl;
-
     int n = 1 << (problem_size - i - 1);
     int num_blocks = (n + block_size - 1) / block_size;
     
@@ -177,5 +171,5 @@ extern "C" void run_pes_solver(
         i
     );
 
-    std::cout << "Goodbye from CUDA!" << std::endl;
+    cudaDeviceSynchronize();
 }

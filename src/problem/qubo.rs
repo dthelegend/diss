@@ -109,7 +109,8 @@ impl QuboProblem {
             offset += b;
         }
 
-        QuboProblem::try_from_coo_matrix(&q_matrix).map(|QuboProblem(x, i)| (QuboProblem(x,i), offset))
+        QuboProblem::try_from_coo_matrix(&q_matrix)
+            .map(|QuboProblem(x, i)| (QuboProblem(x, i), offset))
     }
 
     pub fn get_size(&self) -> usize {
@@ -229,7 +230,7 @@ impl QuboProblem {
 
         -2 * row_sum * sigma_k + w_kk
     }
-    
+
     fn get_dense(&self) -> DMatrix<QuboType> {
         self.0.clone() * DMatrix::identity(self.1, self.1)
     }
@@ -238,11 +239,6 @@ impl QuboProblem {
 /// Note: This operation is expensive, only print if ABSOLUTELY necessary
 impl Debug for QuboProblem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(
-            f,
-            "QuboProblem of size {}{}",
-            self.1,
-            self.get_dense()
-        )
+        writeln!(f, "QuboProblem of size {}{}", self.1, self.get_dense())
     }
 }

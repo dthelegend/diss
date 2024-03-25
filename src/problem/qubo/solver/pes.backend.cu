@@ -59,18 +59,17 @@ __host__ void search(
     if (i == 0) {
         // Check all values for minimum
         // This could in theory be parallelised to log n, but the constant factor tends to be relatively small
-        qubo_t best_temp_eval = *best_evaluation;
-        ssize_t term_to_replace = -1;
+        size_t min_eval_index = 0;
 
-        for (size_t i = 0; i < n; i++) {
-            if (eval_list[i] < best_temp_eval) {
-                term_to_replace = i;
+        for (size_t j = 1; j < n; j++) {
+            if (eval_list[j] < eval_list[min_eval_index]) {
+                min_eval_index = j;
             }
         }
 
-        if (term_to_replace >= 0) {
-            cudaMemcpy(best_evaluation, eval_list + term_to_replace, sizeof(qubo_t), cudaMemcpyDefault);
-            cudaMemcpy(best_solution, solution_list + (term_to_replace * problem_size), problem_size * sizeof(qubo_t), cudaMemcpyDefault);
+        if (eval_list[min_eval_index] < *best_evaluation) {
+            cudaMemcpy(best_evaluation, eval_list + min_eval_index, sizeof(qubo_t), cudaMemcpyDeviceToHost);
+            cudaMemcpy(best_solution, solution_list + (min_eval_index * problem_size), problem_size * sizeof(qubo_t), cudaMemcpyDeviceToHost);
         }
 
         return;

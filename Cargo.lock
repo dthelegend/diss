@@ -81,6 +81,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d6d68c57235a3a081186990eca2867354726650f42f7516ca50c28d6281fd15"
 
 [[package]]
+name = "cc"
+version = "1.0.90"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cd6604a82acf3039f1144f54b8eb34e91ffba622051189e71b781822d5ee1f5"
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -196,6 +202,12 @@ dependencies = [
  "libc",
  "wasi",
 ]
+
+[[package]]
+name = "glob"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
 name = "heck"
@@ -389,30 +401,24 @@ dependencies = [
  "common",
  "log",
  "qubo_problem",
- "qubo_solvers_cpu",
- "qubo_solvers_gpu",
+ "qubo_solvers",
  "sat_problem",
- "sat_to_qubo_reducers_cpu",
+ "sat_to_qubo_reducers",
  "simple_logger",
 ]
 
 [[package]]
-name = "qubo_solvers_cpu"
+name = "qubo_solvers"
 version = "0.1.0"
 dependencies = [
+ "cc",
  "common",
+ "glob",
  "log",
  "nalgebra",
  "qubo_problem",
  "rand",
-]
-
-[[package]]
-name = "qubo_solvers_gpu"
-version = "0.1.0"
-dependencies = [
- "common",
- "qubo_problem",
+ "rayon",
 ]
 
 [[package]]
@@ -541,7 +547,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sat_to_qubo_reducers_cpu"
+name = "sat_to_qubo_reducers"
 version = "0.1.0"
 dependencies = [
  "common",

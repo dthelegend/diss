@@ -192,7 +192,7 @@ impl QuboProblem {
         -2 * row_sum * sigma_k + w_kk
     }
 
-    fn get_dense(&self) -> DMatrix<QuboType> {
+    pub fn get_dense(&self) -> DMatrix<QuboType> {
         self.0.clone() * DMatrix::identity(self.1, self.1)
     }
 }

@@ -11,7 +11,6 @@ log = "0.4.21"
 simple_logger = "4.3.3"
 sat_problem = {path = "../sat_problem"}
 qubo_problem = {path = "../qubo_problem"}
-sat_to_qubo_reducers_cpu = { path = "../sat_to_qubo_reducers_cpu" }
-qubo_solvers_cpu = { path = "../qubo_solvers_cpu" }
-qubo_solvers_gpu = { path = "../qubo_solvers_gpu" }
+sat_to_qubo_reducers = { path = "../sat_to_qubo_reducers" }
+qubo_solvers = { path = "../qubo_solvers" }
 common = {path = "../common"}

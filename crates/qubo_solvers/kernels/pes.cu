@@ -1,4 +1,4 @@
-#include "solver.h"
+#include "qubo_solvers.h"
 
 __device__
 void flip_each(
@@ -168,6 +168,4 @@ extern "C" void run_pes_solver(
         cuda_eval_list,
         i
     );
-
-    cudaDeviceSynchronize();
 }

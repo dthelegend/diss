@@ -1,9 +1,9 @@
 use clap::Parser;
 use common::{Reduction, Solver};
 use log::{debug, error, info, set_max_level, trace, LevelFilter};
-use qubo_solvers_cpu::ExhaustiveSearch;
+use qubo_solvers::{ ExhaustiveSearch, ParallelExhaustiveSearch };
 use sat_problem::{KSatProblem, SatSolution};
-use sat_to_qubo_reducers_cpu::chancellor::Chancellor;
+use sat_to_qubo_reducers::chancellor::Chancellor;
 use std::error::Error;
 use std::io::Read;
 use std::{
@@ -11,6 +11,7 @@ use std::{
     io::{self},
     path::PathBuf,
 };
+use sat_to_qubo_reducers::nusslein::Nusslein;
 
 #[derive(Parser)]
 struct SolverCli {
@@ -65,8 +66,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (qubo_problem, up_modeller) = {
         // Choi::reduce(&problem)
-        Chancellor::reduce(&problem)
-        // Nusslein::reduce(&problem)
+        // Chancellor::reduce(&problem)
+        Nusslein::reduce(&problem)
     };
 
     debug!("Reduced problem size is {}", qubo_problem.get_size());
@@ -75,9 +76,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut solver = {
         // TODO Allow this to be set by CLI arg
         // SimulatedAnnealer::new_with_thread_rng(1_000)
-        ExhaustiveSearch::new()
+        // ExhaustiveSearch::new()
         // ParallelExhaustiveSearch::new(5)
-        // ParallelExhaustiveSearch::with_cuda(11)
+        ParallelExhaustiveSearch::with_cuda(11)
         // Mopso::new_with_thread_rng(1024, 1024)
     };
 

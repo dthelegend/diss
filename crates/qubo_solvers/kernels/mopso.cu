@@ -1,5 +1,5 @@
 #include <iostream>
-#include "solver.h"
+#include "qubo_solvers.h"
 
 extern "C" void run_mopso_solver(
             size_t problem_size,

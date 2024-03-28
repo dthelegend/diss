@@ -1,5 +1,4 @@
-pub mod reducer;
-
+use common::Problem;
 use log::{debug, trace};
 use nalgebra::DVector;
 use regex::Regex;
@@ -61,6 +60,10 @@ impl Display for SatSolution {
 pub struct KSatProblem {
     pub nb_vars: usize,
     pub clause_list: Vec<Vec<SatVariable>>,
+}
+
+impl Problem for KSatProblem {
+    type Solution = SatSolution;
 }
 
 #[derive(Error, Debug)]

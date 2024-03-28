@@ -1,0 +1,13 @@
+[package]
+name = "qubo_solvers_cpu"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.21"
+nalgebra = { version = "0.32.5", features = ["rand", "rayon"] }
+qubo_problem = {path = "../qubo_problem"}
+common = {path = "../common"}
+rand = "0.8.5"

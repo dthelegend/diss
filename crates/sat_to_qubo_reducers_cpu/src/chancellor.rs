@@ -1,13 +1,13 @@
-use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
-use crate::problem::sat::reducer::QuboToSatReduction;
-use crate::problem::sat::{KSatProblem, SatSolution, SatVariable};
+use common::Reduction;
 use nalgebra::DVector;
+use qubo_problem::{QuboProblem, QuboSolution, QuboType};
+use sat_problem::{KSatProblem, SatSolution, SatVariable};
 
 pub struct Chancellor(usize);
 
 type ClauseTripletBias = (usize, Vec<(usize, usize, QuboType)>, Vec<(usize, QuboType)>);
 
-pub fn implement_clause(
+pub(crate) fn implement_clause(
     problem_size: usize,
     mut triplets: Vec<(usize, usize, QuboType)>,
     mut biases: Vec<(usize, QuboType)>,
@@ -64,7 +64,7 @@ pub fn implement_clause(
     }
 }
 
-impl QuboToSatReduction for Chancellor {
+impl Reduction<KSatProblem, QuboProblem> for Chancellor {
     fn reduce(
         &KSatProblem {
             nb_vars,

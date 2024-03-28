@@ -1,18 +1,4 @@
-[package]
-name = "diss"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-clap = { version = "4.5.2", features = ["derive"] }
-log = "0.4.21"
-nalgebra = { version = "0.32.4", features = ["rand", "rayon"] }
-nalgebra-sparse = "0.9.0"
-rand = "0.8.5"
-rayon = "1.9.0"
-regex = "1.10.3"
-simple_logger = "4.3.3"
-thiserror = "1.0.57"
-
-[build-dependencies]
-cc = { version = "1.0.90", features = ["parallel"] }
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+default-members = ["crates/qubo_sat_cli"]

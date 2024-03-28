@@ -3,8 +3,8 @@ use nalgebra::DVector;
 use rand::prelude::IteratorRandom;
 use std::cmp::{max_by_key, min_by_key};
 
-use crate::problem::qubo::solver::QuboSolver;
-use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
+use common::Solver;
+use qubo_problem::{QuboProblem, QuboSolution, QuboType};
 use rand::rngs::ThreadRng;
 use rand::thread_rng;
 
@@ -40,11 +40,11 @@ fn temperature(x: f64) -> f64 {
     f64::exp(-x * K)
 }
 
-impl<Rng> QuboSolver for SimulatedAnnealer<Rng>
+impl<Rng> Solver<QuboProblem> for SimulatedAnnealer<Rng>
 where
     Rng: rand::Rng,
 {
-    fn solve(&mut self, qubo_problem: QuboProblem) -> QuboSolution {
+    fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
         let mut current_solution =
             QuboSolution(DVector::from_fn(qubo_problem.get_size(), |_, _| {
                 self.rng.gen_range(0..=1)

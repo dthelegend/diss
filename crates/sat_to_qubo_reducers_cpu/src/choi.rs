@@ -1,17 +1,17 @@
+use common::Reduction;
 use log::{trace, warn};
 use nalgebra::DVector;
 use nalgebra_sparse::{CooMatrix, CsrMatrix};
 
-use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
-use crate::problem::sat::reducer::QuboToSatReduction;
-use crate::problem::sat::{KSatProblem, SatSolution, SatVariable};
+use qubo_problem::{QuboProblem, QuboSolution, QuboType};
+use sat_problem::{KSatProblem, SatSolution, SatVariable};
 
 // Choi scales directly in the number of clause variables and therefore the size of the problem
 pub struct Choi {
     map: Vec<(Vec<usize>, Vec<usize>)>,
 }
 
-impl QuboToSatReduction for Choi {
+impl Reduction<KSatProblem, QuboProblem> for Choi {
     fn reduce(sat_problem: &KSatProblem) -> (QuboProblem, Self) {
         const VERTEX_WEIGHT: QuboType = -1;
         const EDGE_PENALTY: QuboType = 0;

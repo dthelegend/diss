@@ -1,16 +1,11 @@
 use std::fmt::{Debug, Formatter};
 use std::iter::zip;
 
+use crate::helpers::sigma;
+use common::Problem;
 use nalgebra::{DMatrix, DVector};
 use nalgebra_sparse::{CooMatrix, CsrMatrix, SparseFormatError};
 use thiserror::Error;
-
-#[cfg(test)]
-mod test;
-
-pub mod solver;
-
-pub mod helpers;
 
 pub type QuboType = i32;
 
@@ -21,13 +16,17 @@ pub struct QuboProblem(CsrMatrix<QuboType>, usize);
 pub struct QuboSolution(pub DVector<QuboType>);
 
 impl QuboSolution {
-    fn flip(&self, i: usize) -> Self {
+    pub fn flip(&self, i: usize) -> Self {
         let mut temp_solution = self.clone();
 
         temp_solution.0[i] = 1 - temp_solution.0[i];
 
         temp_solution
     }
+}
+
+impl Problem for QuboProblem {
+    type Solution = QuboSolution;
 }
 
 #[derive(Error, Debug)]
@@ -140,28 +139,6 @@ impl QuboProblem {
     /// * `j`: The bit to flip to produce the solution
     ///
     /// returns: isize
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let sut = ...;
-    ///
-    /// let sut_solution = ...;
-    /// let eval = sut.evaluate(&sut_solution);
-    ///
-    ///
-    /// // Delta(k, X)
-    /// let sut_solution_k = sut_solution.flip(k);
-    /// let eval_k = sut.evaluate(&sut_solution_k);
-    /// let delta_k = eval_k - eval;
-    ///
-    /// // D(k, f(j, X)) = E(f(k, f(j, X)) - E(f(j, X))
-    /// let delta_eval_k_and_eval_j =
-    /// //                              X              D(k, X) j  k
-    /// sut.flip_j_and_delta_evaluate_k(&sut_solution, delta_k,    j, k);
-    ///
-    /// assert_eq!(sut.evaluate(&sut_solution.flip(k).flip(j)) - sut.evaluate(&sut_solution.flip(j)), delta_eval_k_and_eval_j);
-    /// ```
     pub fn flip_j_and_delta_evaluate_k(
         &self,
         solution: &QuboSolution,
@@ -179,8 +156,8 @@ impl QuboProblem {
             .expect("J and K should not be out of bounds!")
             .into_value();
 
-        let s_j = helpers::sigma(solution, j);
-        let s_k = helpers::sigma(solution, k);
+        let s_j = sigma(solution, j);
+        let s_k = sigma(solution, k);
 
         delta_k + 2 * w_jk * s_j * s_k
     }
@@ -194,22 +171,6 @@ impl QuboProblem {
     /// * `k`: The kth bit to flip
     ///
     /// returns: isize
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let sut = ...;
-    /// let sut_solution = ...;
-    ///
-    /// let eval = sut.evaluate(&sut_solution);
-    ///
-    /// let sut_solution_k = ...;
-    /// let eval_k = sut.evaluate(&sut_solution_k);
-    ///
-    /// let delta_k = sut.delta_evaluate_k(&sut_solution, k);
-    ///
-    /// assert_eq!(eval_k - eval, delta_k);
-    /// ```
     pub fn delta_evaluate_k(
         &self,
         solution @ QuboSolution(solution_vector): &QuboSolution,
@@ -224,7 +185,7 @@ impl QuboProblem {
         .map(|(i, x)| solution_vector[i] * x)
         .sum();
 
-        let sigma_k = helpers::sigma(solution, k);
+        let sigma_k = sigma(solution, k);
 
         let w_kk = row.get_entry(k).unwrap().into_value();
 

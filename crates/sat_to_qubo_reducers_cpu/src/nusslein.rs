@@ -1,7 +1,7 @@
-use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
-use crate::problem::sat::reducer::QuboToSatReduction;
-use crate::problem::sat::{KSatProblem, SatSolution, SatVariable};
+use common::Reduction;
 use nalgebra::DVector;
+use qubo_problem::{QuboProblem, QuboSolution, QuboType};
+use sat_problem::{KSatProblem, SatSolution, SatVariable};
 
 pub struct Nusslein {
     constant_factor: QuboType,
@@ -193,7 +193,7 @@ fn implement_clause(
     }
 }
 
-impl QuboToSatReduction for Nusslein {
+impl Reduction<KSatProblem, QuboProblem> for Nusslein {
     fn reduce(
         &KSatProblem {
             nb_vars,

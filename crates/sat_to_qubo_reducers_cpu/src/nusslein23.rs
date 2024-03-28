@@ -1,10 +1,10 @@
-use crate::problem::qubo::{QuboProblem, QuboSolution};
-use crate::problem::sat::reducer::QuboToSatReduction;
-use crate::problem::sat::{KSatProblem, SatSolution};
+use common::Reduction;
+use qubo_problem::{QuboProblem, QuboSolution};
+use sat_problem::{KSatProblem, SatSolution};
 
 pub struct Nusslein23 {}
 
-impl QuboToSatReduction for Nusslein23 {
+impl Reduction<KSatProblem, QuboProblem> for Nusslein23 {
     fn reduce(
         &KSatProblem {
             nb_vars,

@@ -28,13 +28,14 @@ pub fn implement_clause(
             let var_a = problem_size;
             let mut c_a = -1;
 
-            for (i, &SatVariable(is_true_i, var_i)) in clause.iter().enumerate() {
+            // TODO REMOVE C
+            for (i, &SatVariable(is_true_i, var_i)) in c.iter().enumerate() {
                 let c_i = 2 * (is_true_i as QuboType) - 1;
 
                 c_a *= c_i;
 
                 test_biases.push((var_i, H * c_i));
-                for &SatVariable(is_true_j, var_j) in &clause[(i + 1)..] {
+                for &SatVariable(is_true_j, var_j) in &c[(i + 1)..] {
                     let c_j = 2 * H * (is_true_j as QuboType) - 1;
 
                     // This line is correct
@@ -53,9 +54,9 @@ pub fn implement_clause(
             let c_j = 2 * (is_true_j as QuboType) - 1;
             let c_k = 2 * (is_true_k as QuboType) - 1;
 
-            biases.push((var_i, -2 * c_i * !(is_true_j ^ is_true_k) as QuboType));
-            biases.push((var_j, -2 * c_j * !(is_true_i ^ is_true_k) as QuboType));
-            biases.push((var_k, -2 * c_k * !(is_true_i ^ is_true_j) as QuboType));
+            biases.push((var_i, -2 * H * c_i * !(is_true_j ^ is_true_k) as QuboType));
+            biases.push((var_j, -2 * H * c_j * !(is_true_i ^ is_true_k) as QuboType));
+            biases.push((var_k, -2 * H * c_k * !(is_true_i ^ is_true_j) as QuboType));
 
             (problem_size + 1, triplets, biases)
         }

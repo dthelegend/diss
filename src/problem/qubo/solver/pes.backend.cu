@@ -1,6 +1,4 @@
-#include <iostream>
-
-typedef int32_t qubo_t;
+#include "solver.h"
 
 __device__
 void flip_each(

@@ -14,19 +14,16 @@ mod pes_gpu {
 
     use nalgebra::DVector;
 
-    use crate::problem::{
-        self,
-        qubo::{QuboProblem, QuboSolution, QuboType},
-    };
+    use crate::problem::qubo::{QuboProblem, QuboSolution, QuboType};
 
-    #[link(name = "pes")]
+    #[link(name = "cuda_backends")]
     extern "C" {
         fn run_pes_solver(
             block_size: c_int,
             problem_size: usize,
             qubo_problem: *const QuboType,
             best_solution: *mut QuboType,
-            best_evaluatation: *mut QuboType,
+            best_evaluation: *mut QuboType,
             deltas: *const QuboType,
             solution_list: *const QuboType,
             eval_list: *const QuboType,
@@ -40,7 +37,7 @@ mod pes_gpu {
         solution_list: Vec<(QuboSolution, Vec<QuboType>, QuboType)>,
         i: usize,
     ) -> (QuboSolution, QuboType) {
-        let mut solution_vector = DVector::zeros(problem.get_size());
+        let mut best_solution_vector = DVector::zeros(problem.get_size());
         let mut best_eval: QuboType = 0;
 
         let dense_problem = problem.get_dense();
@@ -68,7 +65,7 @@ mod pes_gpu {
                 num_blocks,
                 problem.get_size(),
                 dense_problem.as_ptr(),
-                solution_vector.as_mut_ptr(),
+                best_solution_vector.as_mut_ptr(),
                 &mut best_eval,
                 deltas_flat.as_ptr(),
                 solutions_flat.as_ptr(),
@@ -79,7 +76,7 @@ mod pes_gpu {
 
         trace!("Exited external CUDA section");
 
-        (QuboSolution(solution_vector), best_eval)
+        (QuboSolution(best_solution_vector), best_eval)
     }
 }
 
@@ -106,14 +103,15 @@ impl ParallelExhaustiveSearch {
 
 // Generate all bit strings and deltas for computation. Produces an array of size 2^n
 // Can technically generate all solutions for a problem
-// This operation runs in O(n^3) time sequentially, but it is technically O(n^2) across 2^n processors
-// Think about it this way: this code runs an O(n) operation, across (2^n) processors,O(n - alpha) times
+// This operation runs in O(2^n) time sequentially, but it is technically O(n^2) across 2^n processors
+// Think about it this way: this code runs an O(n) operation, across (max 2^n) processors,O(n - alpha) times
 fn generate_prefixes(
     problem: &QuboProblem,
     solution_list: Vec<(QuboSolution, Vec<QuboType>, QuboType)>,
     min_i: usize,
     i: usize,
 ) -> Vec<(QuboSolution, Vec<QuboType>, QuboType)> {
+    // TODO Generate these in place as matrices
     if i <= min_i {
         return solution_list;
     }

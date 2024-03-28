@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // ExhaustiveSearch::new()
         // ParallelExhaustiveSearch::new(5)
         // ParallelExhaustiveSearch::with_cuda(11)
-        Mopso::new()
+        Mopso::new_with_thread_rng(1024, 1024)
     };
 
     let qubo_solution = solver.solve(qubo_problem);

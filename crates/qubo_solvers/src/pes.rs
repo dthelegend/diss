@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::usize;
 use log::Level::Warn;
 use log::{debug, log_enabled, warn};
@@ -34,17 +35,16 @@ mod pes_gpu {
 
         let dense_problem = problem.get_dense();
 
-        let (solutions_flat, deltas_flat, evals_flat): (Vec<QuboType>, Vec<QuboType>, Vec<QuboType>)
-            = solution_list.into_iter().fold(
-                (Vec::new(), Vec::new(), Vec::new()),
-                |(mut sf, mut df, mut ef), (s, mut d, e)| {
-                    sf.extend_from_slice(s.0.as_slice());
-                    d.resize(problem.get_size(), 0);
-                    df.append(&mut d);
-                    ef.push(e);
-                    
-                    (sf, df, ef)
-                });
+        let (solutions_flat, deltas_flat, evals_flat) = solution_list.into_iter().fold(
+            (Vec::new(), Vec::new(), Vec::new()),
+            |(mut sf, mut df, mut ef), (s, mut d, e)| {
+                sf.extend_from_slice(s.0.as_slice());
+                d.resize(problem.get_size(), 0);
+                df.append(&mut d);
+                ef.push(e);
+
+                (sf, df, ef)
+            });
         
         unsafe {
             run_pes_solver(
@@ -111,6 +111,7 @@ fn generate_prefixes(
 impl Solver<QuboProblem> for ParallelExhaustiveSearch {
     fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
+        const MAX_CUDA_BLOCK_SIZE: usize = 512;
 
         if log_enabled!(Warn) && qubo_problem.get_size() > BIGGEST_REASONABLE_SEARCH_SIZE * (usize::BITS - std::thread::available_parallelism().unwrap().get().leading_zeros()) as usize{
             warn!("Exhaustive Searches greater than {BIGGEST_REASONABLE_SEARCH_SIZE} can take extremely long amounts of time! (This algorithm runs in exponential time, but it is provably optimal!)")
@@ -153,7 +154,7 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
             );
 
             gpu_search_helper(
-                solution_list.len() as i32,
+                min(MAX_CUDA_BLOCK_SIZE, solution_list.len()) as i32,
                 &qubo_problem,
                 solution_list,
                 sub_tree_size)

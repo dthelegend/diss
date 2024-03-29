@@ -65,14 +65,16 @@ void search(
             }
         }
 
+        cudaDeviceSynchronize();
+
         if (eval_list[min_eval_index] < *best_evaluation) {
-            cudaMemcpy(best_evaluation, eval_list + min_eval_index, sizeof(qubo_t), cudaMemcpyDeviceToHost);
-            cudaMemcpy(best_solution, solution_list + (min_eval_index * problem_size), problem_size * sizeof(qubo_t), cudaMemcpyDeviceToHost);
+            cudaMemcpyAsync(best_evaluation, eval_list + min_eval_index, sizeof(qubo_t), cudaMemcpyDeviceToHost);
+            cudaMemcpyAsync(best_solution, solution_list + (min_eval_index * problem_size), problem_size * sizeof(qubo_t), cudaMemcpyDeviceToHost);
         }
 
         return;
     }
-    
+
     // search left
     search(
         n,
@@ -136,24 +138,25 @@ extern "C" void run_pes_solver(
 ) {
     int n = 1 << (problem_size - i - 1);
     int num_blocks = (n + block_size - 1) / block_size;
-    
+
     // TODO Throw an exception if the memory cannot b alloc'd
-    
+
     qubo_t* cuda_qubo_problem;
-    cudaMallocManaged(&cuda_qubo_problem, problem_size * problem_size * sizeof(qubo_t));
-    cudaMemcpy(cuda_qubo_problem, qubo_problem, problem_size * problem_size * sizeof(qubo_t), cudaMemcpyHostToDevice);
-
     qubo_t* cuda_deltas;
-    cudaMallocManaged(&cuda_deltas, n * problem_size * sizeof(qubo_t));
-    cudaMemcpy(cuda_deltas, deltas, n * problem_size * sizeof(qubo_t), cudaMemcpyHostToDevice);
-
     qubo_t* cuda_solution_list;
-    cudaMallocManaged(&cuda_solution_list, n * problem_size * sizeof(qubo_t));
-    cudaMemcpy(cuda_solution_list, solution_list, n * problem_size * sizeof(qubo_t), cudaMemcpyHostToDevice);
-
     qubo_t* cuda_eval_list;
+
+    cudaMallocManaged(&cuda_qubo_problem, problem_size * problem_size * sizeof(qubo_t));
+    cudaMallocManaged(&cuda_deltas, n * problem_size * sizeof(qubo_t));
+    cudaMallocManaged(&cuda_solution_list, n * problem_size * sizeof(qubo_t));
     cudaMallocManaged(&cuda_eval_list, n * sizeof(qubo_t));
-    cudaMemcpy(cuda_eval_list, eval_list, n * sizeof(qubo_t), cudaMemcpyHostToDevice);
+
+    cudaMemcpyAsync(cuda_qubo_problem, qubo_problem, problem_size * problem_size * sizeof(qubo_t), cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(cuda_deltas, deltas, n * problem_size * sizeof(qubo_t), cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(cuda_solution_list, solution_list, n * problem_size * sizeof(qubo_t), cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(cuda_eval_list, eval_list, n * sizeof(qubo_t), cudaMemcpyHostToDevice);
+
+    cudaDeviceSynchronize();
 
     search(
         n,

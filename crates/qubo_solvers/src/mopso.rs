@@ -16,7 +16,7 @@ mod mopso_gpu {
             problem_size: usize,
             qubo_problem: *const QuboType,
             solutions_flat: *const QuboType,
-            number_of_particles: usize,
+            number_of_particles: usize
         );
     }
 

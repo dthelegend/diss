@@ -4,8 +4,9 @@ fn main() {
     // TODO make this compile correctly without cuda as well as a build option
     cc::Build::new()
         .cuda(true)
-        .cudart("static")
+        .cudart("shared")
         .include("kernels/include")
+        .flag("-arch=sm_89")
         .flag("-t0")
         .files(
             glob("kernels/*.*")

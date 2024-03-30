@@ -15,18 +15,27 @@ mod pes_gpu {
     use nalgebra::DVector;
     use qubo_problem::{QuboProblem, QuboSolution, QuboType};
 
+    #[derive(Copy, Clone, Debug)]
+    #[repr(C)]
+    enum CudaResult {
+        Success = 0,
+        ErrorInvalidValue = 1,
+        ErrorInvalidPitchValue = 12,
+        ErrorInvalidDeviceFunction = 98
+    }
+
     #[link(name = "kernels")]
     extern "C" {
         fn run_pes_solver(
-            block_size: c_int,
             problem_size: usize,
             qubo_problem: *const QuboType,
             best_solution: *mut QuboType,
-            best_evaluatation: *mut QuboType,
-            deltas: *const QuboType,
+            best_evaluation: *mut QuboType,
             solution_list: *const QuboType,
+            deltas: *const QuboType,
             eval_list: *const QuboType,
-            i: usize);
+            i: usize
+        ) -> CudaResult;
     }
 
     pub fn gpu_search_helper(num_blocks: i32, problem: &QuboProblem, solution_list: Vec<(QuboSolution, Vec<QuboType>, QuboType)>, i: usize) -> (QuboSolution, QuboType) {
@@ -47,16 +56,19 @@ mod pes_gpu {
             });
         
         unsafe {
-            run_pes_solver(
-                num_blocks,
+            let error = run_pes_solver(
                 problem.get_size(),
                 dense_problem.as_ptr(),
                 solution_vector.as_mut_ptr(),
                 &mut best_eval,
-                deltas_flat.as_ptr(),
                 solutions_flat.as_ptr(),
+                deltas_flat.as_ptr(),
                 evals_flat.as_ptr(),
                 i);
+            
+            if !matches!(error, CudaResult::Success) {
+                panic!("Encountered CUDA Error! {:?}({})", error, error as c_int);
+            }
         }
 
         (QuboSolution(solution_vector), best_eval)

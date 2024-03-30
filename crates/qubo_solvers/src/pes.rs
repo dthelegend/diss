@@ -1,4 +1,3 @@
-use std::cmp::min;
 use std::usize;
 use log::Level::Warn;
 use log::{debug, log_enabled, warn};
@@ -7,86 +6,14 @@ use rayon::prelude::*;
 use common::Solver;
 use qubo_problem::{QuboProblem, QuboSolution, QuboType};
 use crate::es::{calculate_deltas_i, exhaustive_search_helper};
-use crate::pes::pes_gpu::gpu_search_helper;
-
-mod pes_gpu {
-    use std::ffi::c_int;
-
-    use nalgebra::DVector;
-    use qubo_problem::{QuboProblem, QuboSolution, QuboType};
-
-    #[derive(Copy, Clone, Debug)]
-    #[repr(C)]
-    enum CudaResult {
-        Success = 0,
-        ErrorInvalidValue = 1,
-        ErrorInvalidPitchValue = 12,
-        ErrorInvalidDeviceFunction = 98
-    }
-
-    #[link(name = "kernels")]
-    extern "C" {
-        fn run_pes_solver(
-            problem_size: usize,
-            qubo_problem: *const QuboType,
-            best_solution: *mut QuboType,
-            best_evaluation: *mut QuboType,
-            solution_list: *const QuboType,
-            deltas: *const QuboType,
-            eval_list: *const QuboType,
-            i: usize
-        ) -> CudaResult;
-    }
-
-    pub fn gpu_search_helper(num_blocks: i32, problem: &QuboProblem, solution_list: Vec<(QuboSolution, Vec<QuboType>, QuboType)>, i: usize) -> (QuboSolution, QuboType) {
-        let mut solution_vector = DVector::zeros(problem.get_size());
-        let mut best_eval: QuboType = 0;
-
-        let dense_problem = problem.get_dense();
-
-        let (solutions_flat, deltas_flat, evals_flat) = solution_list.into_iter().fold(
-            (Vec::new(), Vec::new(), Vec::new()),
-            |(mut sf, mut df, mut ef), (s, mut d, e)| {
-                sf.extend_from_slice(s.0.as_slice());
-                d.resize(problem.get_size(), 0);
-                df.append(&mut d);
-                ef.push(e);
-
-                (sf, df, ef)
-            });
-        
-        unsafe {
-            let error = run_pes_solver(
-                problem.get_size(),
-                dense_problem.as_ptr(),
-                solution_vector.as_mut_ptr(),
-                &mut best_eval,
-                solutions_flat.as_ptr(),
-                deltas_flat.as_ptr(),
-                evals_flat.as_ptr(),
-                i);
-            
-            if !matches!(error, CudaResult::Success) {
-                panic!("Encountered CUDA Error! {:?}({})", error, error as c_int);
-            }
-        }
-
-        (QuboSolution(solution_vector), best_eval)
-    }
-}
 
 pub struct ParallelExhaustiveSearch {
-    beta: usize,
-    use_cuda: bool, 
+    beta: usize
 }
 
 impl ParallelExhaustiveSearch {
     pub fn new(beta: usize) -> Self {
-        Self { beta, use_cuda: false }
-    }
-
-    pub fn with_cuda(beta: usize) -> Self {
-        Self { beta, use_cuda: true }
+        Self { beta }
     }
 }
 
@@ -123,7 +50,6 @@ fn generate_prefixes(
 impl Solver<QuboProblem> for ParallelExhaustiveSearch {
     fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
-        const MAX_CUDA_BLOCK_SIZE: usize = 512;
 
         if log_enabled!(Warn) && qubo_problem.get_size() > BIGGEST_REASONABLE_SEARCH_SIZE * (usize::BITS - std::thread::available_parallelism().unwrap().get().leading_zeros()) as usize{
             warn!("Exhaustive Searches greater than {BIGGEST_REASONABLE_SEARCH_SIZE} can take extremely long amounts of time! (This algorithm runs in exponential time, but it is provably optimal!)")
@@ -143,34 +69,20 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
             sub_tree_size + 1,
             qubo_problem.get_size(),
         );
+        
+        debug!(
+            "Starting parallel search across {} processors of tree of size 2^{}",
+            solution_list.len(),
+            sub_tree_size
+        );
 
-        let (min_solution, min_eval) = if !self.use_cuda {
-            debug!(
-                "Starting parallel search across {} processors of tree of size 2^{}",
-                solution_list.len(),
-                sub_tree_size
-            );
-
-            solution_list
-                .into_par_iter()
-                .map(|(solution, deltas, eval)| {
-                    exhaustive_search_helper(&qubo_problem, solution, deltas, eval, sub_tree_size)
-                })
-                .min_by_key(|(_, eval)| *eval)
-                .unwrap()
-        } else {
-            debug!(
-                "Starting parallel search across {} kernels of tree of size 2^{}",
-                solution_list.len(),
-                sub_tree_size
-            );
-
-            gpu_search_helper(
-                min(MAX_CUDA_BLOCK_SIZE, solution_list.len()) as i32,
-                &qubo_problem,
-                solution_list,
-                sub_tree_size)
-        };
+        let (min_solution, min_eval) = solution_list
+            .into_par_iter()
+            .map(|(solution, deltas, eval)| {
+                exhaustive_search_helper(qubo_problem, solution, deltas, eval, sub_tree_size)
+            })
+            .min_by_key(|(_, eval)| *eval)
+            .unwrap();
 
         debug!(
             "Produced a provably optimal min evaluation {} with solution: {}",

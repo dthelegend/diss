@@ -1,7 +1,7 @@
 use clap::Parser;
 use common::{Reduction, Solver};
 use log::{debug, error, info, set_max_level, trace, LevelFilter};
-use qubo_solvers::{ ExhaustiveSearch, ParallelExhaustiveSearch };
+use qubo_solvers::{ExhaustiveSearch, Mopso, ParallelExhaustiveSearch};
 use sat_problem::{KSatProblem, SatSolution};
 use sat_to_qubo_reducers::chancellor::Chancellor;
 use std::error::Error;
@@ -11,6 +11,7 @@ use std::{
     io::{self},
     path::PathBuf,
 };
+use sat_to_qubo_reducers::nusslein23::Nusslein23;
 use sat_to_qubo_reducers::nusslein::Nusslein;
 
 #[derive(Parser)]
@@ -67,7 +68,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (qubo_problem, up_modeller) = {
         // Choi::reduce(&problem)
         // Chancellor::reduce(&problem)
-        Nusslein::reduce(&problem)
+        // Nusslein::reduce(&problem)
+        Nusslein23::reduce(&problem)
     };
 
     debug!("Reduced problem size is {}", qubo_problem.get_size());

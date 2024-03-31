@@ -90,7 +90,7 @@ Input from the user is Processed into the SAT Problem instance. The SAT Problem 
 
 The plan is for the solver to implements 5 reduction algorithms:
 - *Choi* @choi_different_2011 which uses a reduction from K-SAT to 3-SAT to MIS then finally QUBO
-- A novel method which reduces K-SAT to Max-2-SAT and then to QUBO
+- A novel method which reduces K-SAT to Max-2-SAT and then to QUBO // Didn't implement in the end
 - *Chancellor* @chancellor_direct_2016 which directly encodes problems in a Hamiltonian function that defines the QUBO Matrix. This is the current state-of-the-art method, and the resulting QUBO Matrices are notably smaller than that of Choi.
 - *Nusslein 2022* @nuslein_algorithmic_2022 is similar to Chancellor, but is supposed to scale better for QUBO formulations where the resulting QUBO graph has a number of edges that is sub-quadratic i.e. $|E| = Theta(|V|)$
 - *Nusslein 2023* @nuslein_solving_2023 is a from a preprint paper which is supposed to produce smaller QUBO matrices than Chancellor with similar characteristics
@@ -98,12 +98,12 @@ The plan is for the solver to implements 5 reduction algorithms:
 == QUBO Solving Algorithms
 
 The plan is for the solver to implement 6 QUBO solving algorithms:
-- *Simulated Annealing*
-- *Parallel Exhaustive Search* @tao_work-time_2020
-- *MOPSO* @fujimoto_solving_2021
-- *Momentum Annealing* @okuyama_binary_2019
+- *Simulated Annealing* // Implemented
+- *Parallel Exhaustive Search* @tao_work-time_2020 // Implemented (CPU Only)
+- *MOPSO* @fujimoto_solving_2021 // WIP
+- *Momentum Annealing* @okuyama_binary_2019 // Not completed
 - *Simulated Quantum Annealing* @volpe_integration_2023
-- *Divers Adaptive Bulk Search* @nakano_diverse_2022
+- *Divers Adaptive Bulk Search* @nakano_diverse_2022 // This is the same as PES
 
 TODO: High level overview on each of these methods and how they work
 TODO: FDCC

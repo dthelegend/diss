@@ -62,11 +62,11 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
 
         let mut solution_list = vec![(start_solution, delta_j_precalcs, 0)];
 
-        let sub_tree_size = qubo_problem.get_size() - self.beta;
+        let sub_tree_size = qubo_problem.get_size() + 1 - self.beta;
         solution_list = generate_prefixes(
             &qubo_problem,
             solution_list,
-            sub_tree_size + 1,
+            sub_tree_size,
             qubo_problem.get_size(),
         );
         
@@ -81,7 +81,7 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
             .map(|(solution, deltas, eval)| {
                 exhaustive_search_helper(qubo_problem, solution, deltas, eval, sub_tree_size)
             })
-            .min_by_key(|(_, eval)| *eval)
+            .min_by_key(|(QuboSolution(solution), eval)| (*eval, - solution.sum()))
             .unwrap();
 
         debug!(

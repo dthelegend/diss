@@ -11,7 +11,7 @@ pub type QuboType = i32;
 
 pub struct QuboProblem(CsrMatrix<QuboType>, usize);
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[repr(transparent)]
 pub struct QuboSolution(pub DVector<QuboType>);
 

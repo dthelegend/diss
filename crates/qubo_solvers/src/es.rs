@@ -49,7 +49,7 @@ pub fn exhaustive_search_helper(
     let left_min = exhaustive_search_helper(problem, solution, deltas, curr_eval, i - 1);
     let right_min = exhaustive_search_helper(problem, solution_i, new_deltas, eval_i, i - 1);
 
-    min_by_key(left_min, right_min, |(_, eval)| *eval)
+    min_by_key(left_min, right_min, |(QuboSolution(solution_vector), eval)| (*eval, - solution_vector.sum()))
 }
 
 impl Solver<QuboProblem> for ExhaustiveSearch {

@@ -1,14 +1,14 @@
-use std::usize;
+use crate::es::{calculate_deltas_i, exhaustive_search_helper};
+use common::Solver;
 use log::Level::Warn;
 use log::{debug, log_enabled, warn};
 use nalgebra::DVector;
-use rayon::prelude::*;
-use common::Solver;
 use qubo_problem::{QuboProblem, QuboSolution, QuboType};
-use crate::es::{calculate_deltas_i, exhaustive_search_helper};
+use rayon::prelude::*;
+use std::usize;
 
 pub struct ParallelExhaustiveSearch {
-    beta: usize
+    beta: usize,
 }
 
 impl ParallelExhaustiveSearch {
@@ -51,7 +51,15 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
     fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
 
-        if log_enabled!(Warn) && qubo_problem.get_size() > BIGGEST_REASONABLE_SEARCH_SIZE * (usize::BITS - std::thread::available_parallelism().unwrap().get().leading_zeros()) as usize{
+        if log_enabled!(Warn)
+            && qubo_problem.get_size()
+                > BIGGEST_REASONABLE_SEARCH_SIZE
+                    * (usize::BITS
+                        - std::thread::available_parallelism()
+                            .unwrap()
+                            .get()
+                            .leading_zeros()) as usize
+        {
             warn!("Exhaustive Searches greater than {BIGGEST_REASONABLE_SEARCH_SIZE} can take extremely long amounts of time! (This algorithm runs in exponential time, but it is provably optimal!)")
         }
 
@@ -64,12 +72,12 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
 
         let sub_tree_size = qubo_problem.get_size() + 1 - self.beta;
         solution_list = generate_prefixes(
-            &qubo_problem,
+            qubo_problem,
             solution_list,
             sub_tree_size,
             qubo_problem.get_size(),
         );
-        
+
         debug!(
             "Starting parallel search across {} processors of tree of size 2^{}",
             solution_list.len(),
@@ -81,7 +89,7 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
             .map(|(solution, deltas, eval)| {
                 exhaustive_search_helper(qubo_problem, solution, deltas, eval, sub_tree_size)
             })
-            .min_by_key(|(QuboSolution(solution), eval)| (*eval, - solution.sum()))
+            .min_by_key(|(QuboSolution(solution), eval)| (*eval, -solution.sum()))
             .unwrap();
 
         debug!(

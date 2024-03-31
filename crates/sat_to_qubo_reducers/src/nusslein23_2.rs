@@ -1,7 +1,7 @@
-use log::{trace, warn};
-use nalgebra::{DMatrix, dvector, DVector};
-use nalgebra_sparse::CooMatrix;
 use common::Reduction;
+use log::{trace, warn};
+use nalgebra::{DMatrix, DVector};
+use nalgebra_sparse::CooMatrix;
 use qubo_problem::{QuboProblem, QuboSolution, QuboType};
 use sat_problem::{KSatProblem, SatSolution, SatVariable};
 
@@ -24,8 +24,8 @@ impl Reduction<KSatProblem, QuboProblem> for Nusslein23_2 {
         let problem_size = 2 * nb_vars + m;
         let mut q_matrix: CooMatrix<QuboType> = CooMatrix::new(problem_size, problem_size);
 
-        let mut r_values : DVector<QuboType> = DVector::zeros(2 * nb_vars);
-        let mut r_rel_values : DMatrix<QuboType> = DMatrix::zeros(2 * nb_vars, 2 * nb_vars);
+        let mut r_values: DVector<QuboType> = DVector::zeros(2 * nb_vars);
+        let mut r_rel_values: DMatrix<QuboType> = DMatrix::zeros(2 * nb_vars, 2 * nb_vars);
 
         for clause in clause_list {
             for &SatVariable(is_true_i, var_i) in clause {
@@ -47,29 +47,32 @@ impl Reduction<KSatProblem, QuboProblem> for Nusslein23_2 {
         for i in 0..problem_size {
             for j in i..problem_size {
                 if i == j && j < 2 * nb_vars {
-                    q_matrix.push(i, j, - r_values[i]);
+                    q_matrix.push(i, j, -r_values[i]);
                 } else if i == j && j >= 2 * nb_vars {
                     q_matrix.push(i, j, 2);
                 } else if j < 2 * nb_vars && j - i == 1 && fast_mod2(i) == 0 {
                     q_matrix.push(i, j, (m + 1) as QuboType);
                 } else if i < 2 * nb_vars && j < 2 * nb_vars {
                     q_matrix.push(i, j, r_rel_values[(i, j)]);
-                } else if j >= 2 * nb_vars && i < 2 * nb_vars && clause_list[j - 2 * nb_vars].iter().any(|&SatVariable(is_true, var)| 2 * var + (1 - is_true as usize) == i) {
+                } else if j >= 2 * nb_vars
+                    && i < 2 * nb_vars
+                    && clause_list[j - 2 * nb_vars]
+                        .iter()
+                        .any(|&SatVariable(is_true, var)| 2 * var + (1 - is_true as usize) == i)
+                {
                     q_matrix.push(i, j, -1);
                 }
             }
         }
 
-        let problem = QuboProblem::try_from_coo_matrix(&q_matrix)
-            .expect("Matrix should be properly formed");
+        let problem =
+            QuboProblem::try_from_coo_matrix(&q_matrix).expect("Matrix should be properly formed");
 
-        (problem, Self {
-            nb_vars
-        })
+        (problem, Self { nb_vars })
     }
 
     fn up_model(&self, QuboSolution(solution_vector): QuboSolution) -> SatSolution {
-        let out_sv = DVector::from_fn(self.nb_vars, |i,_| {
+        let out_sv = DVector::from_fn(self.nb_vars, |i, _| {
             let is_true = solution_vector[2 * i] != 0;
             let is_false = solution_vector[2 * i + 1] != 0;
 

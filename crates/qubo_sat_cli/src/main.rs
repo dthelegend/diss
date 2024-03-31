@@ -4,6 +4,8 @@ use log::{debug, error, info, set_max_level, trace, LevelFilter};
 use qubo_solvers::{ExhaustiveSearch, Mopso, ParallelExhaustiveSearch};
 use sat_problem::{KSatProblem, SatSolution};
 use sat_to_qubo_reducers::chancellor::Chancellor;
+use sat_to_qubo_reducers::nusslein::Nusslein;
+use sat_to_qubo_reducers::nusslein23::Nusslein23;
 use std::error::Error;
 use std::io::Read;
 use std::{
@@ -11,8 +13,6 @@ use std::{
     io::{self},
     path::PathBuf,
 };
-use sat_to_qubo_reducers::nusslein23::Nusslein23;
-use sat_to_qubo_reducers::nusslein::Nusslein;
 
 #[derive(Parser)]
 struct SolverCli {

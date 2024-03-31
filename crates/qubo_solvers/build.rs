@@ -11,7 +11,7 @@ fn main() {
         .files(
             glob("kernels/*.*")
                 .expect("Failed to read kernel directory glob pattern")
-                .map(|x| x.expect("Failed to read path from glob"))
+                .map(|x| x.expect("Failed to read path from glob")),
         )
         .emit_rerun_if_env_changed(true)
         .compile("kernels");

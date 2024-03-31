@@ -4,8 +4,7 @@ use qubo_problem::{QuboProblem, QuboSolution, QuboType};
 use sat_problem::{KSatProblem, SatSolution, SatVariable};
 
 pub struct Nusslein {
-    constant_factor: QuboType,
-    og_vars: usize,
+    nb_vars: usize,
 }
 
 // fast ciel(log2(x + 1))
@@ -202,10 +201,9 @@ impl Reduction<KSatProblem, QuboProblem> for Nusslein {
     ) -> (QuboProblem, Self) {
         let mut problem_size = nb_vars;
         let mut triplets = Vec::new();
-        let mut constant_factor = 0;
         for clause in clause_list {
-            (problem_size, constant_factor, triplets) =
-                implement_clause(problem_size, triplets, constant_factor, clause)
+            (problem_size, _, triplets) =
+                implement_clause(problem_size, triplets, 0, clause)
         }
 
         let q_matrix = QuboProblem::try_from_triplets(problem_size, triplets)
@@ -214,14 +212,13 @@ impl Reduction<KSatProblem, QuboProblem> for Nusslein {
         (
             q_matrix,
             Self {
-                og_vars: nb_vars,
-                constant_factor,
+                nb_vars
             },
         )
     }
 
     fn up_model(&self, QuboSolution(solution_vector): QuboSolution) -> SatSolution {
-        SatSolution::Sat(DVector::from_fn(self.og_vars, |i, _| {
+        SatSolution::Sat(DVector::from_fn(self.nb_vars, |i, _| {
             solution_vector[i] != 0
         }))
     }

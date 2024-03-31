@@ -1,14 +1,13 @@
-
-use rand::prelude::ThreadRng;
-use rand::thread_rng;
+use crate::mopso::mopso_gpu::gpu_mopso_helper;
 use common::Solver;
 use qubo_problem::{QuboProblem, QuboSolution};
-use crate::mopso::mopso_gpu::gpu_mopso_helper;
+use rand::prelude::ThreadRng;
+use rand::thread_rng;
 
 mod mopso_gpu {
     use nalgebra::DMatrix;
-    use rand::Rng;
     use qubo_problem::{QuboProblem, QuboType};
+    use rand::Rng;
 
     #[link(name = "kernels")]
     extern "C" {
@@ -16,7 +15,7 @@ mod mopso_gpu {
             problem_size: usize,
             qubo_problem: *const QuboType,
             solutions_flat: *const QuboType,
-            number_of_particles: usize
+            number_of_particles: usize,
         );
     }
 

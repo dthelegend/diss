@@ -1,23 +1,36 @@
+use std::env::var;
+use std::process::Command;
 use glob::glob;
 
 fn main() {
-    // TODO make this compile correctly without cuda as well as a build option
-    cc::Build::new()
-        .cuda(true)
-        .cudart("shared")
-        .include("kernels/include")
-        .flag("-arch=sm_89")
-        .flag("-t0")
-        .files(
-            glob("kernels/*.*")
-                .expect("Failed to read kernel directory glob pattern")
-                .map(|x| x.expect("Failed to read path from glob")),
-        )
-        .emit_rerun_if_env_changed(true)
-        .compile("kernels");
-    println!("cargo:rerun-if-changed=kernels/**/*.cu");
-    println!("cargo:rerun-if-changed=kernels/**/*.c");
-    println!("cargo:rerun-if-changed=kernels/**/*.h");
-    println!("cargo:rerun-if-changed=kernels/**/*.cpp");
-    println!("cargo:rerun-if-changed=kernels/**/*.hpp");
+    let out_dir = var("OUT_DIR").unwrap();
+    let is_debug = matches!(var("PROFILE").unwrap().as_str(), "debug");
+
+    println!("cargo:rerun-if-changed=kernels/**/*");
+    println!("cargo:rustc-link-search={}", out_dir);
+    println!("cargo:rustc-link-lib=kernels");
+    println!("cargo:rustc-link-search={}/lib", env!("DPCPP_HOME"));
+
+    let status = Command::new(concat!(env!("DPCPP_HOME"), "/bin/clang"))
+        .args([
+            "-fsycl",
+            "-fsycl-unnamed-lambda",
+            "-fsycl-targets=nvptx64-nvidia-cuda",
+            "-fPIC"
+        ])
+        .args([ if is_debug { "-O0" } else { "-O3" }])
+        .args([
+            "-shared",
+            "-o",
+            format!("{}/libkernels.so", out_dir).as_str()
+        ])
+        .args(["-Ikernels/include"])
+        .args(glob("kernels/*.*")
+            .expect("Failed to read kernel directory glob pattern")
+            .map(|x| x.expect("Failed to read path from glob")))
+        .status()
+        .expect("link command failed, IO error");
+    if !status.success() {
+        panic!("link command failed, exit status {}", status);
+    }
 }

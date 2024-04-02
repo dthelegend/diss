@@ -409,8 +409,10 @@ dependencies = [
  "glob",
  "log",
  "nalgebra",
+ "nalgebra-sparse",
  "qubo_problem",
  "rand",
+ "rand_distr",
  "rayon",
 ]
 

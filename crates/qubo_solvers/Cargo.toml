@@ -12,6 +12,8 @@ qubo_problem = {path = "../qubo_problem"}
 common = {path = "../common"}
 rand = "0.8.5"
 rayon = "1.10.0"
+nalgebra-sparse = "0.9.0"
+rand_distr = "0.4.3"
 
 [build-dependencies]
 glob = "0.3.1"

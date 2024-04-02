@@ -192,6 +192,10 @@ impl QuboProblem {
         -2 * row_sum * sigma_k + w_kk
     }
 
+    pub fn get_sparse(&self) -> CsrMatrix<QuboType> {
+        self.0.clone()
+    }
+
     pub fn get_dense(&self) -> DMatrix<QuboType> {
         self.0.clone() * DMatrix::identity(self.1, self.1)
     }

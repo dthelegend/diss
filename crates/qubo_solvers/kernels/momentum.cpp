@@ -4,7 +4,7 @@
 
 class vector_addition;
 
-extern "C" void run_mopso_solver(
+extern "C" void run_momentum_annealer(
         size_t problem_size,
         const qubo_t* qubo_problem,
         const qubo_t* solutions_flat,

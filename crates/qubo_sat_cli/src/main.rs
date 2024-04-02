@@ -1,7 +1,7 @@
 use clap::Parser;
 use common::{Reduction, Solver};
 use log::{debug, error, info, set_max_level, trace, LevelFilter};
-use qubo_solvers::{ExhaustiveSearch, Mopso, ParallelExhaustiveSearch};
+use qubo_solvers::{ExhaustiveSearch, MomentumAnnealer, ParallelExhaustiveSearch};
 use sat_problem::{KSatProblem, SatSolution};
 use sat_to_qubo_reducers::chancellor::Chancellor;
 use sat_to_qubo_reducers::nusslein::Nusslein;
@@ -79,10 +79,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         // TODO Allow this to be set by CLI arg
         // SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
-        // ParallelExhaustiveSearch::new(5)
+        ParallelExhaustiveSearch::new(5)
         // ParallelExhaustiveSearch::with_cuda(22)
         // ParallelExhaustiveSearch::with_cuda(11)
-        Mopso::new_with_thread_rng(1024, 1024)
+        // MomentumAnnealer::new(1_000)
     };
 
     let qubo_solution = solver.solve(&qubo_problem);

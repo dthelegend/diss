@@ -1,9 +1,9 @@
 mod es;
-mod mopso;
+mod momentum;
 mod pes;
 mod sa;
 
 pub use es::ExhaustiveSearch;
-pub use mopso::Mopso;
+pub use momentum::MomentumAnnealer;
 pub use pes::ParallelExhaustiveSearch;
 pub use sa::SimulatedAnnealer;

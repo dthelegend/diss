@@ -9,22 +9,24 @@ fn main() {
     println!("cargo:rerun-if-changed=kernels/**/*");
     println!("cargo:rustc-link-search={}", out_dir);
     println!("cargo:rustc-link-lib=kernels");
-    println!("cargo:rustc-link-search={}/lib", env!("DPCPP_HOME"));
 
-    let status = Command::new(concat!(env!("DPCPP_HOME"), "/bin/clang"))
+    let output_object = format!("{}/libkernels.a", out_dir);
+
+    let status = Command::new(concat!(env!("DPCPP_HOME"), "/bin/clang++"))
+        .arg(format!("--target={}", var("TARGET").unwrap()).as_str())
         .args([
             "-fsycl",
             "-fsycl-unnamed-lambda",
             "-fsycl-targets=nvptx64-nvidia-cuda",
             "-fPIC"
         ])
-        .args([ if is_debug { "-O0" } else { "-O3" }])
+        .arg(if is_debug { "-O0" } else { "-O3" })
         .args([
             "-shared",
             "-o",
-            format!("{}/libkernels.so", out_dir).as_str()
+            output_object.as_str()
         ])
-        .args(["-Ikernels/include"])
+        .arg("-Ikernels/include")
         .args(glob("kernels/*.*")
             .expect("Failed to read kernel directory glob pattern")
             .map(|x| x.expect("Failed to read path from glob")))

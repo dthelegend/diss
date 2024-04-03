@@ -148,9 +148,14 @@ impl Solver<QuboProblem> for MomentumAnnealer
         let gamma = Gamma::new(1.0,1.0)
             .unwrap();
 
-        let mut s_k : DVector<QuboType> = DVector::from_fn(problem_size * 2, |i, _|{
-            thread_rng().gen_range(0..=1) * 2 - 1
-        });
+        let mut s_k : DVector<QuboType> = DVector::zeros(problem_size * 2);
+        for i in 0..problem_size {
+            let v = thread_rng().gen_range(0..=1) * 2 - 1;
+            s_k[2 * i] = v;
+            s_k[2 * i + 1] = v;
+        };
+
+        let hb_f32 = h_bias.clone().cast::<f32>();
 
         for k in 0..=self.max_iterations {
             let c_k = momentum_scaling_factor(k);
@@ -169,13 +174,12 @@ impl Solver<QuboProblem> for MomentumAnnealer
 
                 j_mat_plus_w_diag_builder.cast::<f32>()
             };
-            let hb_f32 = h_bias.clone().cast::<f32>();
             let sk_f32 = s_k.clone().cast::<f32>();
 
             let side = fast_is_even_as_usize(k);
             let other_side = 1 - side;
 
-            let new_sk = hb_f32
+            let new_sk = &hb_f32
                 + j_mat_plus_w_diag * sk_f32.rows_with_step(other_side, problem_size, 1)
                 - gamma_k.scale(t_k / 2.0).component_mul(&(sk_f32.rows_with_step(side, problem_size, 1)));
 

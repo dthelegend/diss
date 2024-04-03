@@ -1,7 +1,7 @@
 use clap::Parser;
 use common::{Reduction, Solver};
 use log::{debug, error, info, set_max_level, trace, LevelFilter};
-use qubo_solvers::{ExhaustiveSearch, MomentumAnnealer, ParallelExhaustiveSearch};
+use qubo_solvers::{ExhaustiveSearch, MomentumAnnealer, ParallelExhaustiveSearch, SimulatedAnnealer};
 use sat_problem::{KSatProblem, SatSolution};
 use sat_to_qubo_reducers::chancellor::Chancellor;
 use sat_to_qubo_reducers::nusslein::Nusslein;
@@ -67,9 +67,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (qubo_problem, up_modeller) = {
         // Choi::reduce(&problem)
-        // Chancellor::reduce(&problem)
+        Chancellor::reduce(&problem)
         // Nusslein::reduce(&problem)
-        Nusslein23::reduce(&problem)
+        // Nusslein23::reduce(&problem)
     };
 
     debug!("Reduced problem size is {}", qubo_problem.get_size());
@@ -79,10 +79,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         // TODO Allow this to be set by CLI arg
         // SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
-        ParallelExhaustiveSearch::new(5)
+        // ParallelExhaustiveSearch::new(5)
         // ParallelExhaustiveSearch::with_cuda(22)
         // ParallelExhaustiveSearch::with_cuda(11)
-        // MomentumAnnealer::new(1_000)
+        MomentumAnnealer::new(1_000)
     };
 
     let qubo_solution = solver.solve(&qubo_problem);

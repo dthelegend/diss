@@ -1,5 +1,5 @@
 use std::iter::zip;
-use log::warn;
+use log::debug;
 use nalgebra::{DMatrix, DVector};
 use common::Solver;
 use qubo_problem::{QuboProblem, QuboSolution, QuboType};
@@ -103,21 +103,26 @@ impl Solver<QuboProblem> for MomentumAnnealer
             power_iteration(&(-qubo_problem.get_dense().cast()), 1e-6 , 1000)
                 .ceil() as QuboType;
 
-        let mut h_bias: DVector<QuboType> = DVector::zeros(qubo_problem.get_size());
 
-        let j_mat = {
+        let (h_bias, j_mat) = {
+            let mut h_bias_builder: DVector<QuboType> = DVector::zeros(qubo_problem.get_size());
             let mut j_mat_builder: DMatrix<QuboType> = DMatrix::zeros(qubo_problem.get_size(), qubo_problem.get_size());
 
-            for (i, j, v) in qubo_problem.get_sparse().triplet_iter() {
+            for (i, j, &v) in qubo_problem.get_sparse().upper_triangle().triplet_iter() {
                 if i == j {
-                    h_bias[i] += v * 2;
+                    h_bias_builder[i] += v;
                 } else {
-                    j_mat_builder[(i, j)] += *v;
+                    j_mat_builder[(i, j)] += v;
+
+                    h_bias_builder[i] += v;
+                    h_bias_builder[j] += v;
                 }
             }
 
-            j_mat_builder
+            (h_bias_builder, j_mat_builder)
         };
+
+        debug!("Starting to momentum anneal");
 
         let problem_size = qubo_problem.get_size();
 
@@ -163,7 +168,7 @@ impl Solver<QuboProblem> for MomentumAnnealer
             let t_k = temperature(k);
 
             let temp_w = DVector::from_vec(w.par_column_iter()
-               .map(|x| ((x[0] * (1 - thread_rng().gen_bool(p_k) as QuboType)) as f64 * c_k).ceil() as QuboType)
+               .map(|x| ((x[0] * (thread_rng().gen_bool(1.0 - p_k) as QuboType)) as f64 * c_k).ceil() as QuboType)
                .collect());
 
             let gamma_k : DVector<f32> = DVector::from_vec((0..problem_size).into_par_iter().map(|_| gamma.sample(&mut thread_rng())).collect());

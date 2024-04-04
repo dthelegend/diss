@@ -13,6 +13,7 @@ use std::{
     io::{self},
     path::PathBuf,
 };
+use sat_to_qubo_reducers::choi::Choi;
 
 #[derive(Parser)]
 struct SolverCli {
@@ -66,8 +67,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     trace!("Ingested problem {:?}", problem);
 
     let (qubo_problem, up_modeller) = {
-        // Choi::reduce(&problem)
-        Chancellor::reduce(&problem)
+        Choi::reduce(&problem)
+        // Chancellor::reduce(&problem)
         // Nusslein::reduce(&problem)
         // Nusslein23::reduce(&problem)
     };

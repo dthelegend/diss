@@ -89,19 +89,20 @@ fn momentum_scaling_factor(k : usize) -> f64 {
 }
 
 fn temperature(k: usize) -> f32 {
-    f32::max(0f32, 0.5 - (k as f32) / 2000f32)
+    const BETA_0 : f32 = 0.1;
+    
+    1.0 / (BETA_0 * f32::ln(1 + k))
 }
 
-fn fast_is_even_as_usize(k: usize) -> usize {
+fn fast_is_odd_as_usize(k: usize) -> usize {
     k & 0x1
 }
 
 impl Solver<QuboProblem> for MomentumAnnealer
 {
     fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
-        let max_eigenvalue: QuboType =
-            power_iteration(&(-qubo_problem.get_dense().cast()), 1e-6 , 1000)
-                .ceil() as QuboType;
+        let max_eigenvalue: f32 =
+            power_iteration(&(-qubo_problem.get_dense().cast()), 1e-6 , 1000);
 
 
         let (h_bias, j_mat) = {
@@ -137,14 +138,14 @@ impl Solver<QuboProblem> for MomentumAnnealer
                     w_builder[i] = row_sum;
                     c[i] |= true;
                 } else {
-                    w_builder[i] = max_eigenvalue / 2;
+                    w_builder[i] = max_eigenvalue / 2.0 ;
                 }
             }
 
             for i in c.iter().cloned().enumerate().filter_map(|(i, v)| if v { Some(i) } else { None }) {
                 let row_i = j_mat.row(i);
 
-                w_builder[i] -= zip(row_i.iter().cloned(), c.iter().cloned()).map(|(v_i, c_i)| v_i * c_i as QuboType / 2).sum::<QuboType>();
+                w_builder[i] -= zip(row_i.iter().cloned(), c.iter().cloned()).map(|(v_i, c_i)| v_i * (c_i as u8) as f32 / 2).sum::<f32>();
             }
 
             w_builder.transpose()
@@ -153,9 +154,9 @@ impl Solver<QuboProblem> for MomentumAnnealer
         let gamma = Gamma::new(1.0,1.0)
             .unwrap();
 
-        let mut s_k : DVector<QuboType> = DVector::zeros(problem_size * 2);
+        let mut s_k : DVector<f32> = DVector::zeros(problem_size * 2);
         for i in 0..problem_size {
-            let v = thread_rng().gen_range(0..=1) * 2 - 1;
+            let v = (thread_rng().gen_range(0..=1) * 2 - 1) as f32;
             s_k[2 * i] = v;
             s_k[2 * i + 1] = v;
         };
@@ -168,25 +169,24 @@ impl Solver<QuboProblem> for MomentumAnnealer
             let t_k = temperature(k);
 
             let temp_w = DVector::from_vec(w.par_column_iter()
-               .map(|x| ((x[0] * (thread_rng().gen_bool(1.0 - p_k) as QuboType)) as f64 * c_k).ceil() as QuboType)
+               .map(|x| ((x[0] * (thread_rng().gen_bool(1.0 - p_k))) * c_k).ceil() as QuboType)
                .collect());
 
             let gamma_k : DVector<f32> = DVector::from_vec((0..problem_size).into_par_iter().map(|_| gamma.sample(&mut thread_rng())).collect());
 
             let j_mat_plus_w_diag = {
-                let mut j_mat_plus_w_diag_builder = j_mat.clone();
+                let mut j_mat_plus_w_diag_builder = j_mat.cast::<f32>();
                 j_mat_plus_w_diag_builder.set_diagonal(&temp_w);
 
-                j_mat_plus_w_diag_builder.cast::<f32>()
+                j_mat_plus_w_diag_builder
             };
-            let sk_f32 = s_k.clone().cast::<f32>();
 
-            let side = fast_is_even_as_usize(k);
+            let side = fast_is_odd_as_usize(k);
             let other_side = 1 - side;
 
             let new_sk = &hb_f32
-                + j_mat_plus_w_diag * sk_f32.rows_with_step(other_side, problem_size, 1)
-                - gamma_k.scale(t_k / 2.0).component_mul(&(sk_f32.rows_with_step(side, problem_size, 1)));
+                + j_mat_plus_w_diag * s_k.rows_with_step(other_side, problem_size, 1)
+                - gamma_k.scale(t_k / 2.0).component_mul(&(s_k.rows_with_step(side, problem_size, 1)));
 
             s_k.rows_with_step_mut(side, problem_size, 1)
                 .set_column(0, &new_sk.map(|x| x.signum() as QuboType));

@@ -86,8 +86,8 @@ impl QuboProblem {
 
     pub fn try_from_ising_triplets(
         problem_size: usize,
-        j_triplets: Vec<(usize, usize, QuboType)>,
-        j_biases: Vec<(usize, QuboType)>,
+        j_triplets: impl IntoIterator<Item = (usize, usize, QuboType)>,
+        j_biases: impl IntoIterator<Item = (usize, QuboType)>,
     ) -> Result<(Self, QuboType), QuboError> {
         let mut q_matrix = CooMatrix::new(problem_size, problem_size);
 

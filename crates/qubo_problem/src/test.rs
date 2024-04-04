@@ -1,4 +1,4 @@
-use super::{QuboProblem, QuboSolution};
+use super::{QuboProblem, QuboSolution, QuboType};
 use nalgebra::{dvector, DMatrix, DVector};
 use nalgebra_sparse::{CooMatrix, CsrMatrix};
 use rand::{thread_rng, Rng};
@@ -103,4 +103,29 @@ fn check_delta_evaluation_k() {
 
         assert_eq!(0, delta_k_neg + delta_k);
     }
+}
+
+#[test]
+fn check_ising() {
+    const PROBLEM_SIZE: usize = 100;
+    
+    let mut rng = thread_rng();
+    
+    let sut_internal: CsrMatrix<QuboType> = CsrMatrix::from(&DMatrix::from_fn(PROBLEM_SIZE, PROBLEM_SIZE, |i, j| {
+        if i <= j {
+            rng.gen_range(0..128)
+        } else {
+            0
+        }
+    }));
+    
+    let h : Vec<_> = sut_internal.diagonal_as_csr().triplet_iter().map(|(i,_,v)| (i,*v)).collect();
+    let j : Vec<_> = sut_internal.triplet_iter().filter_map(|(i,j,v)|(i != j).then_some((i, j, *v))).collect();
+    
+    let (yy, _) = QuboProblem::try_from_ising_triplets(PROBLEM_SIZE, j.clone(), h.clone()).unwrap();
+
+    let (h_t, mut j_t) = yy.get_ising();
+
+    j_t.set_diagonal(&h_t);
+    assert_eq!(sut_internal * DMatrix::identity(PROBLEM_SIZE, PROBLEM_SIZE), j_t / 4);
 }

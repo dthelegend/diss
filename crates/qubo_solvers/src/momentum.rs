@@ -81,17 +81,17 @@ impl MomentumAnnealer
 }
 
 fn dropout(k: usize) -> MaType {
-    MaType::max(0.0, 0.5 - (k as MaType) / 2000.0)
+    MaType::max(0.0, 0.5 - (k as MaType / 2000.0))
 }
 
-fn momentum_scaling_factor(k : usize) -> f32 {
-    f32::min(1.0, MaType::sqrt(k as MaType / 1000.0))
+fn momentum_scaling_factor(k : usize) -> MaType {
+    MaType::min(1.0, MaType::sqrt(k as MaType / 1000.0))
 }
 
-fn temperature(k: usize) -> f32 {
-    const BETA_0 : f32 = 0.0003;
+fn temperature(k: usize) -> MaType {
+    const BETA_0 : MaType = 0.0003;
     
-    1.0 / (BETA_0 * f32::ln(1.0 + k as f32))
+    1.0 / (BETA_0 * MaType::ln(1.0 + k as MaType))
 }
 
 impl Solver<QuboProblem> for MomentumAnnealer
@@ -101,22 +101,9 @@ impl Solver<QuboProblem> for MomentumAnnealer
             power_iteration(&(-qubo_problem.get_dense().cast()), 1e-6 , 1000);
 
         let (h_bias, j_mat) = {
-            let mut h_bias_builder: DVector<MaType> = DVector::zeros(qubo_problem.get_size());
-            let mut j_mat_builder: DMatrix<MaType> = DMatrix::zeros(qubo_problem.get_size(), qubo_problem.get_size());
+            let (q_typed_bias, q_typed_mat) = qubo_problem.get_ising();
 
-            for (i, j, &v) in qubo_problem.get_sparse().upper_triangle().triplet_iter() {
-                let ma_v = v as MaType;
-                if i == j {
-                    h_bias_builder[i] += ma_v;
-                } else {
-                    j_mat_builder[(i, j)] += ma_v;
-
-                    h_bias_builder[i] += ma_v;
-                    h_bias_builder[j] += ma_v;
-                }
-            }
-
-            (h_bias_builder, j_mat_builder)
+            (q_typed_bias.cast(), q_typed_mat.cast())
         };
 
         debug!("Starting to momentum anneal");
@@ -150,7 +137,7 @@ impl Solver<QuboProblem> for MomentumAnnealer
         let mut s_k : DVector<f32> = DVector::from_distribution(problem_size, &Bernoulli::new(0.5).unwrap(), &mut thread_rng()).map(|x| if x { 1.0 } else { -1.0 });
         let mut s_k1 : DVector<f32> = s_k.clone();
         
-        for k in 0..=self.max_iterations {
+        for k in 1..=self.max_iterations {
             let c_k = momentum_scaling_factor(k);
             let p_k = dropout(k);
             let t_k = temperature(k);

@@ -83,7 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // ParallelExhaustiveSearch::new(5)
         // ParallelExhaustiveSearch::with_cuda(22)
         // ParallelExhaustiveSearch::with_cuda(11)
-        MomentumAnnealer::new(1_000)
+        MomentumAnnealer::new(1_000_000_000)
     };
 
     let qubo_solution = solver.solve(&qubo_problem);

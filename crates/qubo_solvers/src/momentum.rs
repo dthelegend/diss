@@ -46,24 +46,15 @@ mod mopso_gpu {
     }
 }
 
-fn power_iteration(matrix: &DMatrix<MaType>, epsilon: MaType, max_iterations: usize) -> MaType {
-    let mut x = DVector::repeat(matrix.nrows(), 1.0);
-    let mut lambda_old = 0.0;
+fn power_iteration(A: &DMatrix<MaType>, epsilon: MaType, max_iterations: usize) -> MaType {
+    let mut b = DVector::new_random(A.nrows());
 
     for _ in 0..max_iterations {
-        let y = matrix * x;
-        let lambda = y.norm();
-
-        x = y / lambda;
-
-        if (lambda - lambda_old).abs() < epsilon {
-            break;
-        }
-
-        lambda_old = lambda;
+        b = A * b;
     }
-
-    lambda_old
+    
+    // b
+    todo!()
 }
 
 pub struct MomentumAnnealer
@@ -97,14 +88,17 @@ fn temperature(k: usize) -> MaType {
 impl Solver<QuboProblem> for MomentumAnnealer
 {
     fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
-        let max_eigenvalue: MaType =
-            power_iteration(&(-qubo_problem.get_dense().cast()), 1e-6 , 1000);
-
         let (h_bias, j_mat) = {
             let (q_typed_bias, q_typed_mat) = qubo_problem.get_ising();
 
             (q_typed_bias.cast(), q_typed_mat.cast())
         };
+
+        let max_eigenvalue: MaType =
+            // According to the paper this should not take longer than 300 iterations to be close
+            // enough to optimal
+            power_iteration(&(- &j_mat), 1e-6 , 1000);
+
 
         debug!("Starting to momentum anneal");
 
@@ -115,17 +109,19 @@ impl Solver<QuboProblem> for MomentumAnnealer
             let mut c : DVector<MaType> = DVector::zeros(problem_size);
 
             for i in 0..problem_size {
-                let row_sum = j_mat.row(i).sum();
-                if max_eigenvalue >= row_sum {
-                    w_builder[i] = row_sum;
+                let abs_row_sum = j_mat.row(i).map(MaType::abs).sum();
+                if max_eigenvalue >= abs_row_sum {
+                    w_builder[i] = abs_row_sum;
                     c[i] = 1.0;
                 } else {
                     w_builder[i] = max_eigenvalue / 2.0;
                 }
             }
 
-            let neg_vec = DVector::from_fn(problem_size, |i,_| (j_mat.row(i) * &c)[0]);
-
+            let neg_vec = DVector::from_fn(problem_size, |i,_| (j_mat.row(i).map(MaType::abs) * &c)[0] / 2.0);
+            
+            println!("{max_eigenvalue}\n{neg_vec}\n{c}");
+            
             w_builder -= neg_vec;
 
             w_builder

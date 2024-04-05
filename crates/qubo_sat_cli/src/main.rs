@@ -67,8 +67,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     trace!("Ingested problem {:?}", problem);
 
     let (qubo_problem, up_modeller) = {
-        Choi::reduce(&problem)
-        // Chancellor::reduce(&problem)
+        // Choi::reduce(&problem)
+        Chancellor::reduce(&problem)
         // Nusslein::reduce(&problem)
         // Nusslein23::reduce(&problem)
     };
@@ -80,10 +80,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         // TODO Allow this to be set by CLI arg
         // SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
-        // ParallelExhaustiveSearch::new(5)
+        // ParallelExhaustiveSearch::new(22)
         // ParallelExhaustiveSearch::with_cuda(22)
         // ParallelExhaustiveSearch::with_cuda(11)
-        MomentumAnnealer::new(1_000_000_000)
+        MomentumAnnealer::new(1_000)
     };
 
     let qubo_solution = solver.solve(&qubo_problem);

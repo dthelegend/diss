@@ -1,3 +1,7 @@
+use crate::data_recorder::DataRecorder;
+
+pub mod data_recorder;
+
 pub trait Problem {
     type Solution;
 }
@@ -16,5 +20,5 @@ pub trait Solver<T>
 where
     T: Problem,
 {
-    fn solve(&mut self, problem: &T) -> T::Solution;
+    fn solve(&mut self, problem: &T, logger: Option<impl DataRecorder>) -> T::Solution;
 }

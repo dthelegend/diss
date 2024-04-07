@@ -5,7 +5,8 @@ use common::Solver;
 use qubo_problem::{QuboProblem, QuboSolution, QuboType};
 use rand::prelude::*;
 use rand_distr::Gamma;
-use rayon::prelude::*;
+use common::data_recorder::DataRecorder;
+use qubo_problem::record::EnergyRecord;
 
 type MaType = f32;
 
@@ -52,23 +53,22 @@ fn power_method(matrix: &DMatrix<MaType>, epsilon: MaType, max_iter: usize) -> M
 
     let mut lambda : MaType = 1.0;
     let mut lambda_prev = 0.0;
-    let mut iter = 0;
 
-    while (lambda - lambda_prev).abs() > epsilon && iter < max_iter {
-        let y = matrix * x;
-        let norm_y = y.norm();
-        x = y / norm_y;
+    for _ in 0..max_iter {
+        x = (matrix * x).normalize();
         lambda_prev = lambda;
         lambda = (x.transpose() * matrix * &x)[0];
-        
-        iter += 1;
+
+        if (lambda - lambda_prev).abs() < epsilon {
+            break
+        }
     }
 
     lambda
 }
 
 fn largest_eigenvalue(j_mat: &DMatrix<MaType>, epsilon: MaType, max_iterations: usize) -> MaType {
-    let mut mu = j_mat.abs().column_sum().max() / 100.0;
+    let mut mu = j_mat.abs().row_sum().max() / 100.0;
     
     let mut k_largest_eigenvalue = 0.0;
     while k_largest_eigenvalue <= 0.0 {
@@ -83,14 +83,14 @@ fn largest_eigenvalue(j_mat: &DMatrix<MaType>, epsilon: MaType, max_iterations: 
 
 pub struct MomentumAnnealer
 {
-    max_iterations: usize,
+    max_iterations: usize
 }
 
 impl MomentumAnnealer
 {
     pub fn new(max_iterations: usize) -> Self {
         Self {
-            max_iterations,
+            max_iterations
         }
     }
 }
@@ -104,20 +104,19 @@ fn momentum_scaling_factor(k : usize) -> MaType {
 }
 
 fn temperature(k: usize) -> MaType {
-    const BETA_0 : MaType = 0.0003;
+    const BETA_0 : MaType = 3e-4;
+    // const BETA_0 : MaType = 1e-1;
     
     1.0 / (BETA_0 * MaType::ln(1.0 + k as MaType))
 }
 
 impl Solver<QuboProblem> for MomentumAnnealer
 {
-    fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
+    fn solve(&mut self, qubo_problem: &QuboProblem, mut logger: Option<impl DataRecorder>) -> QuboSolution {
         let (h_bias, j_mat) = {
             let (q_typed_bias, q_typed_mat) = qubo_problem.get_ising();
             
-            let q_typed_mat_casted = q_typed_mat.cast();
-            
-            (q_typed_bias.cast(), q_typed_mat_casted.transpose() + q_typed_mat_casted)
+            (q_typed_bias.cast(), q_typed_mat.cast())
         };
         
         trace!("Generated J-Matrix and bias {j_mat}{}", h_bias.transpose());
@@ -158,6 +157,8 @@ impl Solver<QuboProblem> for MomentumAnnealer
         let mut s_k : DVector<f32> = DVector::from_distribution(problem_size, &Bernoulli::new(0.5).unwrap(), &mut thread_rng()).map(|x| if x { 1.0 } else { -1.0 });
         let mut s_k1 : DVector<f32> = s_k.clone();
         
+        let start_time= std::time::Instant::now();
+        
         for k in 0..=self.max_iterations {
             let c_k = momentum_scaling_factor(k);
             let p_k = dropout(k);
@@ -167,7 +168,7 @@ impl Solver<QuboProblem> for MomentumAnnealer
 
             let c_k_vector = DVector::repeat(problem_size, c_k);
 
-            let dropout_vector = DVector::from_distribution(problem_size, &bernoulli, &mut thread_rng()).map(|x| if x { 1.0 } else { 0.0 });
+            let dropout_vector = DVector::from_distribution(problem_size, &bernoulli, &mut thread_rng()).map(|x| if x { 0.0 } else { 1.0 });
 
             let temp_w = w.component_mul(&dropout_vector.component_mul(&c_k_vector));
 
@@ -185,6 +186,13 @@ impl Solver<QuboProblem> for MomentumAnnealer
                 - gamma_k.component_mul(&s_k).scale(t_k / 2.0)).map(MaType::signum);
             
             (s_k, s_k1) = (s_k1, s_k);
+
+            if let Some(dr) = &mut logger {
+                let temp_sol = QuboSolution(s_k.map(|x| (x as QuboType + 1) / 2));
+                let temp_eval = qubo_problem.evaluate(&temp_sol);
+                dr.add_record(EnergyRecord::create(start_time, k, temp_eval))
+                    .expect("Failed to log to file");
+            }
         }
 
         // gpu_mopso_helper(&mut self.rng, qubo_problem, self.number_of_particles);

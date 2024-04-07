@@ -4,6 +4,7 @@ use log::{debug, log_enabled, warn};
 use nalgebra::DVector;
 use qubo_problem::{QuboProblem, QuboSolution, QuboType};
 use std::cmp::min_by_key;
+use common::data_recorder::DataRecorder;
 
 pub struct ExhaustiveSearch {}
 
@@ -57,7 +58,7 @@ pub fn exhaustive_search_helper(
 }
 
 impl Solver<QuboProblem> for ExhaustiveSearch {
-    fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
+    fn solve(&mut self, qubo_problem: &QuboProblem, _: Option<impl DataRecorder>) -> QuboSolution {
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
 
         let start_solution = QuboSolution(DVector::zeros(qubo_problem.get_size()));

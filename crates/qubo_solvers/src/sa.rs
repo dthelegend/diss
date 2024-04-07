@@ -7,6 +7,8 @@ use common::Solver;
 use qubo_problem::{QuboProblem, QuboSolution, QuboType};
 use rand::rngs::ThreadRng;
 use rand::thread_rng;
+use common::data_recorder::DataRecorder;
+use qubo_problem::record::EnergyRecord;
 
 pub struct SimulatedAnnealer<Rng>
 where
@@ -44,7 +46,7 @@ impl<Rng> Solver<QuboProblem> for SimulatedAnnealer<Rng>
 where
     Rng: rand::Rng,
 {
-    fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
+    fn solve(&mut self, qubo_problem: &QuboProblem, mut logger: Option<impl DataRecorder>) -> QuboSolution {
         let mut current_solution =
             QuboSolution(DVector::from_fn(qubo_problem.get_size(), |_, _| {
                 self.rng.gen_range(0..=1)
@@ -56,9 +58,11 @@ where
 
         let mut best_solution = current_solution.clone();
         let mut best_evaluation = current_evaluation;
+        
+        let start_time = std::time::Instant::now();
 
-        for k in 1..=self.max_iterations {
-            let t = temperature(k as f64 / (self.max_iterations as f64));
+        for k in 0..self.max_iterations {
+            let t = temperature((k + 1) as f64 / (self.max_iterations as f64));
 
             let ((min_delta_i, min_delta), (_, max_delta)) = current_deltas
                 .iter()
@@ -108,7 +112,10 @@ where
             current_evaluation = random_evaluation;
             current_solution = current_solution.flip(random_i);
 
-            trace!("Current evaluation is {current_evaluation}");
+            if let Some(dr) = &mut logger {
+                dr.add_record(EnergyRecord::create(start_time, k, current_evaluation))
+                    .expect("Failed to log to file");
+            }
         }
 
         debug!("Final Evaluation is {best_evaluation}");

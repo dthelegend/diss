@@ -13,6 +13,8 @@ use std::{
     io::{self},
     path::PathBuf,
 };
+use std::path::Path;
+use common::data_recorder::CsvDataRecorder;
 use sat_to_qubo_reducers::choi::Choi;
 
 #[derive(Parser)]
@@ -20,6 +22,9 @@ struct SolverCli {
     /// Do not log anything; Overrides verbose
     #[arg(short = 'q', long = "quiet")]
     quiet: bool,
+    // The file to log solver steps to in csv format
+    #[arg(short = 'l', long = "log")]
+    log_file: Option<PathBuf>,
     /// The file to read. If not provided it defaults to STDIN
     #[arg()]
     file: Option<PathBuf>,
@@ -44,6 +49,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     simple_logger::SimpleLogger::new().init()?;
     set_max_level(verbosity);
+    
+    let logger = args.log_file.map(|x| {
+        CsvDataRecorder::new_from_path(x)
+    }).transpose()?;
 
     info!("Current Verbosity is {}", verbosity);
 
@@ -86,7 +95,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         MomentumAnnealer::new(10_000)
     };
 
-    let qubo_solution = solver.solve(&qubo_problem);
+    let qubo_solution = solver.solve(&qubo_problem, logger);
 
     let mut solution = up_modeller.up_model(qubo_solution);
 

@@ -6,6 +6,7 @@ use nalgebra::DVector;
 use qubo_problem::{QuboProblem, QuboSolution, QuboType};
 use rayon::prelude::*;
 use std::usize;
+use common::data_recorder::DataRecorder;
 
 pub struct ParallelExhaustiveSearch {
     beta: usize,
@@ -48,7 +49,7 @@ fn generate_prefixes(
 }
 
 impl Solver<QuboProblem> for ParallelExhaustiveSearch {
-    fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
+    fn solve(&mut self, qubo_problem: &QuboProblem, _: Option<impl DataRecorder>) -> QuboSolution {
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
 
         if log_enabled!(Warn)

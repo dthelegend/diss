@@ -90,8 +90,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
         // ParallelExhaustiveSearch::new(22)
-        // ParallelExhaustiveSearch::with_cuda(22)
-        // ParallelExhaustiveSearch::with_cuda(11)
         // MomentumAnnealer::new(1_000)
     };
 

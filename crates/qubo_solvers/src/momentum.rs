@@ -116,7 +116,7 @@ impl Solver<QuboProblem> for MomentumAnnealer
         let (h_bias, j_mat) = {
             let (q_typed_bias, q_typed_mat) = qubo_problem.get_ising();
             
-            (q_typed_bias.cast(), q_typed_mat.cast())
+            (q_typed_bias.cast(), (q_typed_mat.transpose() + q_typed_mat).cast())
         };
         
         trace!("Generated J-Matrix and bias {j_mat}{}", h_bias.transpose());

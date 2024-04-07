@@ -87,12 +87,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut solver = {
         // TODO Allow this to be set by CLI arg
-        // SimulatedAnnealer::new_with_thread_rng(1_000)
+        SimulatedAnnealer::new_with_thread_rng(1_000)
         // ExhaustiveSearch::new()
         // ParallelExhaustiveSearch::new(22)
         // ParallelExhaustiveSearch::with_cuda(22)
         // ParallelExhaustiveSearch::with_cuda(11)
-        MomentumAnnealer::new(10_000)
+        // MomentumAnnealer::new(1_000)
     };
 
     let qubo_solution = solver.solve(&qubo_problem, logger);

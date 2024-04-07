@@ -28,6 +28,6 @@ impl EnergyRecord {
     }
 
     pub fn create(start_time: std::time::Instant, iteration: usize, energy: QuboType) -> Self {
-        Self::create_with_time(start_time - std::time::Instant::now(), iteration, energy)
+        Self::create_with_time(std::time::Instant::now() - start_time, iteration, energy)
     }
 }

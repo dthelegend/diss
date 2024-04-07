@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, trace};
 use nalgebra::{DMatrix, DVector};
 use rand::distributions::Bernoulli;
 use common::Solver;
@@ -46,15 +46,39 @@ mod mopso_gpu {
     }
 }
 
-fn power_iteration(A: &DMatrix<MaType>, epsilon: MaType, max_iterations: usize) -> MaType {
-    let mut b = DVector::new_random(A.nrows());
+fn power_method(matrix: &DMatrix<MaType>, epsilon: MaType, max_iter: usize) -> MaType {
+    let n = matrix.ncols();
+    let mut x = DVector::repeat(n, 1.0);
 
-    for _ in 0..max_iterations {
-        b = A * b;
+    let mut lambda : MaType = 1.0;
+    let mut lambda_prev = 0.0;
+    let mut iter = 0;
+
+    while (lambda - lambda_prev).abs() > epsilon && iter < max_iter {
+        let y = matrix * x;
+        let norm_y = y.norm();
+        x = y / norm_y;
+        lambda_prev = lambda;
+        lambda = (x.transpose() * matrix * &x)[0];
+        
+        iter += 1;
+    }
+
+    lambda
+}
+
+fn largest_eigenvalue(j_mat: &DMatrix<MaType>, epsilon: MaType, max_iterations: usize) -> MaType {
+    let mut mu = j_mat.abs().column_sum().max() / 100.0;
+    
+    let mut k_largest_eigenvalue = 0.0;
+    while k_largest_eigenvalue <= 0.0 {
+        mu += - k_largest_eigenvalue;
+        let k_mat = - j_mat + DMatrix::identity(j_mat.nrows(), j_mat.ncols()).scale(mu);
+
+        k_largest_eigenvalue = power_method(&k_mat, epsilon, max_iterations);
     }
     
-    // b
-    todo!()
+    k_largest_eigenvalue - mu
 }
 
 pub struct MomentumAnnealer
@@ -90,17 +114,20 @@ impl Solver<QuboProblem> for MomentumAnnealer
     fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
         let (h_bias, j_mat) = {
             let (q_typed_bias, q_typed_mat) = qubo_problem.get_ising();
-
-            (q_typed_bias.cast(), q_typed_mat.cast())
+            
+            let q_typed_mat_casted = q_typed_mat.cast();
+            
+            (q_typed_bias.cast(), q_typed_mat_casted.transpose() + q_typed_mat_casted)
         };
+        
+        trace!("Generated J-Matrix and bias {j_mat}{}", h_bias.transpose());
 
         let max_eigenvalue: MaType =
             // According to the paper this should not take longer than 300 iterations to be close
             // enough to optimal
-            power_iteration(&(- &j_mat), 1e-6 , 1000);
+            largest_eigenvalue(&j_mat, 1e-6 , 1000);
 
-
-        debug!("Starting to momentum anneal");
+        debug!("Using maximum eigenvalue {max_eigenvalue}");
 
         let problem_size = qubo_problem.get_size();
 
@@ -118,9 +145,7 @@ impl Solver<QuboProblem> for MomentumAnnealer
                 }
             }
 
-            let neg_vec = DVector::from_fn(problem_size, |i,_| (j_mat.row(i).map(MaType::abs) * &c)[0] / 2.0);
-            
-            println!("{max_eigenvalue}\n{neg_vec}\n{c}");
+            let neg_vec = DVector::from_fn(problem_size, |i,_| c[i] * (j_mat.row(i).map(MaType::abs) * &c)[0] / 2.0);
             
             w_builder -= neg_vec;
 
@@ -133,7 +158,7 @@ impl Solver<QuboProblem> for MomentumAnnealer
         let mut s_k : DVector<f32> = DVector::from_distribution(problem_size, &Bernoulli::new(0.5).unwrap(), &mut thread_rng()).map(|x| if x { 1.0 } else { -1.0 });
         let mut s_k1 : DVector<f32> = s_k.clone();
         
-        for k in 1..=self.max_iterations {
+        for k in 0..=self.max_iterations {
             let c_k = momentum_scaling_factor(k);
             let p_k = dropout(k);
             let t_k = temperature(k);

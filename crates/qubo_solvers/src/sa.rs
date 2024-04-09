@@ -1,4 +1,4 @@
-use log::{debug, trace};
+use log::{debug};
 use nalgebra::DVector;
 use rand::prelude::IteratorRandom;
 use std::cmp::{max_by_key, min_by_key};

@@ -200,10 +200,11 @@ impl QuboProblem {
         self.0.clone() * DMatrix::identity(self.1, self.1)
     }
     
-    pub fn get_ising(&self) -> (DVector<QuboType>, DMatrix<QuboType>) {
+    pub fn get_ising(&self) -> (DVector<QuboType>, DMatrix<QuboType>, QuboType) {
         let problem_size = self.get_size();
         let mut h_bias_builder: DVector<QuboType> = DVector::zeros(problem_size);
         let mut j_mat_builder: DMatrix<QuboType> = DMatrix::zeros(problem_size, problem_size);
+        let mut offset = 0;
 
         for (i, j, &v) in self.get_sparse().upper_triangle().triplet_iter() {
             if i == j {
@@ -214,9 +215,10 @@ impl QuboProblem {
                 h_bias_builder[i] += v;
                 h_bias_builder[j] += v;
             }
+            offset += v;
         }
 
-        (h_bias_builder, j_mat_builder)
+        (h_bias_builder, j_mat_builder, offset)
     }
 }
 

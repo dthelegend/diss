@@ -113,7 +113,7 @@ fn check_ising() {
     
     let sut_internal: CsrMatrix<QuboType> = CsrMatrix::from(&DMatrix::from_fn(PROBLEM_SIZE, PROBLEM_SIZE, |i, j| {
         if i <= j {
-            rng.gen_range(0..128)
+            rng.gen_range(-128..128)
         } else {
             0
         }

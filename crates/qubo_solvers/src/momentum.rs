@@ -7,52 +7,51 @@ use rand::prelude::*;
 use rand_distr::Gamma;
 use common::data_recorder::DataRecorder;
 use qubo_problem::record::EnergyRecord;
+use rayon::prelude::*;
 
 type MaType = f32;
 
-mod mopso_gpu {
-    use qubo_problem::{QuboProblem, QuboType};
-    use rand::Rng;
-
-    #[link(name = "kernels")]
-    extern "C" {
-        fn run_mopso_solver(
-            problem_size: usize,
-            qubo_problem: *const QuboType,
-            solutions_flat: *const QuboType,
-            number_of_particles: usize,
-        );
-    }
-
-    pub fn gpu_mopso_helper(
-        mut rng: impl Rng,
-        qubo_problem: &QuboProblem,
-        number_of_particles: usize,
-    ) {
-        // let solutions_flat: DMatrix<QuboType> =
-        //     DMatrix::from_fn(number_of_particles, qubo_problem.get_size(), |_, _| {
-        //         rng.gen_range(0..=1)
-        //     });
-
-        // unsafe {
-        //     run_mopso_solver(
-        //         qubo_problem.get_size(),
-        //         dense_problem.as_ptr(),
-        //         solutions_flat.as_ptr(),
-        //         number_of_particles,
-        //     )
-        // }
-
-        todo!()
-    }
-}
+// mod mopso_gpu {
+//     use qubo_problem::{QuboProblem, QuboType};
+//     use rand::Rng;
+// 
+//     #[link(name = "kernels")]
+//     extern "C" {
+//         fn run_mopso_solver(
+//             problem_size: usize,
+//             qubo_problem: *const QuboType,
+//             solutions_flat: *const QuboType,
+//             number_of_particles: usize,
+//         );
+//     }
+// 
+//     pub fn gpu_mopso_helper(
+//         mut rng: impl Rng,
+//         qubo_problem: &QuboProblem,
+//         number_of_particles: usize,
+//     ) {
+//         // let solutions_flat: DMatrix<QuboType> =
+//         //     DMatrix::from_fn(number_of_particles, qubo_problem.get_size(), |_, _| {
+//         //         rng.gen_range(0..=1)
+//         //     });
+// 
+//         // unsafe {
+//         //     run_mopso_solver(
+//         //         qubo_problem.get_size(),
+//         //         dense_problem.as_ptr(),
+//         //         solutions_flat.as_ptr(),
+//         //         number_of_particles,
+//         //     )
+//         // }
+//     }
+// }
 
 fn power_method(matrix: &DMatrix<MaType>, epsilon: MaType, max_iter: usize) -> MaType {
     let n = matrix.ncols();
     let mut x = DVector::repeat(n, 1.0);
 
     let mut lambda : MaType = 1.0;
-    let mut lambda_prev = 0.0;
+    let mut lambda_prev : MaType;
 
     for _ in 0..max_iter {
         x = (matrix * x).normalize();
@@ -73,7 +72,7 @@ fn largest_eigenvalue(j_mat: &DMatrix<MaType>, epsilon: MaType, max_iterations: 
     let mut k_largest_eigenvalue = 0.0;
     while k_largest_eigenvalue <= 0.0 {
         mu += - k_largest_eigenvalue;
-        let k_mat = - j_mat + DMatrix::identity(j_mat.nrows(), j_mat.ncols()).scale(mu);
+        let k_mat = j_mat + DMatrix::identity(j_mat.nrows(), j_mat.ncols()).scale(mu);
 
         k_largest_eigenvalue = power_method(&k_mat, epsilon, max_iterations);
     }
@@ -105,7 +104,6 @@ fn momentum_scaling_factor(k : usize) -> MaType {
 
 fn temperature(k: usize) -> MaType {
     const BETA_0 : MaType = 3e-4;
-    // const BETA_0 : MaType = 1e-1;
     
     1.0 / (BETA_0 * MaType::ln(1.0 + k as MaType))
 }
@@ -113,18 +111,20 @@ fn temperature(k: usize) -> MaType {
 impl Solver<QuboProblem> for MomentumAnnealer
 {
     fn solve(&mut self, qubo_problem: &QuboProblem, mut logger: Option<impl DataRecorder>) -> QuboSolution {
-        let (h_bias, j_mat) = {
-            let (q_typed_bias, q_typed_mat) = qubo_problem.get_ising();
-            
-            (q_typed_bias.cast(), (q_typed_mat.transpose() + q_typed_mat).cast())
+        let (h_bias, j_mat) : (DVector<MaType>, DMatrix<MaType>) = {
+            let (q_typed_bias, q_typed_mat, _q_offset) = qubo_problem.get_ising();
+
+            (q_typed_bias.cast(), q_typed_mat.cast())
         };
         
         trace!("Generated J-Matrix and bias {j_mat}{}", h_bias.transpose());
+        
+        let j_mat_sym = j_mat.transpose() + j_mat;
 
         let max_eigenvalue: MaType =
             // According to the paper this should not take longer than 300 iterations to be close
-            // enough to optimal
-            largest_eigenvalue(&j_mat, 1e-6 , 1000);
+            // enough to the real value and is thus a constant factor
+            largest_eigenvalue(&(- &j_mat_sym), 1e-6 , 300);
 
         debug!("Using maximum eigenvalue {max_eigenvalue}");
 
@@ -135,7 +135,7 @@ impl Solver<QuboProblem> for MomentumAnnealer
             let mut c : DVector<MaType> = DVector::zeros(problem_size);
 
             for i in 0..problem_size {
-                let abs_row_sum = j_mat.row(i).map(MaType::abs).sum();
+                let abs_row_sum = j_mat_sym.row(i).map(MaType::abs).sum();
                 if max_eigenvalue >= abs_row_sum {
                     w_builder[i] = abs_row_sum;
                     c[i] = 1.0;
@@ -144,7 +144,7 @@ impl Solver<QuboProblem> for MomentumAnnealer
                 }
             }
 
-            let neg_vec = DVector::from_fn(problem_size, |i,_| c[i] * (j_mat.row(i).map(MaType::abs) * &c)[0] / 2.0);
+            let neg_vec = DVector::from_fn(problem_size, |i,_| c[i] * (j_mat_sym.row(i).map(MaType::abs) * &c)[0] / 2.0);
             
             w_builder -= neg_vec;
 
@@ -154,8 +154,8 @@ impl Solver<QuboProblem> for MomentumAnnealer
         let gamma = Gamma::new(1.0,1.0)
             .unwrap();
 
-        let mut s_k : DVector<f32> = DVector::from_distribution(problem_size, &Bernoulli::new(0.5).unwrap(), &mut thread_rng()).map(|x| if x { 1.0 } else { -1.0 });
-        let mut s_k1 : DVector<f32> = s_k.clone();
+        let mut s_k : DVector<MaType> = DVector::from_distribution(problem_size, &Bernoulli::new(0.5).unwrap(), &mut thread_rng()).map(|x| if x { 1.0 } else { -1.0 });
+        let mut s_k1 : DVector<MaType> = s_k.clone();
         
         let start_time= std::time::Instant::now();
         
@@ -165,26 +165,17 @@ impl Solver<QuboProblem> for MomentumAnnealer
             let t_k = temperature(k);
 
             let bernoulli = Bernoulli::new(p_k as f64).unwrap();
-
-            let c_k_vector = DVector::repeat(problem_size, c_k);
-
-            let dropout_vector = DVector::from_distribution(problem_size, &bernoulli, &mut thread_rng()).map(|x| if x { 0.0 } else { 1.0 });
-
-            let temp_w = w.component_mul(&dropout_vector.component_mul(&c_k_vector));
-
-            let gamma_k : DVector<f32> = DVector::from_distribution(problem_size, &gamma, &mut thread_rng());
-
-            let j_mat_plus_w_diag = {
-                let mut j_mat_plus_w_diag_builder = j_mat.clone();
-                j_mat_plus_w_diag_builder.set_diagonal(&temp_w);
-
-                j_mat_plus_w_diag_builder
-            };
             
-            s_k = (&h_bias
-                + j_mat_plus_w_diag * &s_k1
-                - gamma_k.component_mul(&s_k).scale(t_k / 2.0)).map(MaType::signum);
-            
+            s_k.par_column_iter_mut().enumerate().for_each(|(i, mut s_ki)| {
+                let mut rng = thread_rng();
+                let gamma_k = gamma.sample(&mut rng);
+                let should_drop = bernoulli.sample(&mut rng);
+                
+                let jsk : MaType = (j_mat_sym.row(i) * &s_k1)[0] + if should_drop { 0.0 } else { w[i] * s_k1[i] };
+
+                s_ki[0] = (h_bias[i] + jsk - (t_k / 2.0) * gamma_k * s_ki[0]).signum()
+            });
+
             (s_k, s_k1) = (s_k1, s_k);
 
             if let Some(dr) = &mut logger {
@@ -195,8 +186,10 @@ impl Solver<QuboProblem> for MomentumAnnealer
             }
         }
 
-        // gpu_mopso_helper(&mut self.rng, qubo_problem, self.number_of_particles);
-
-        QuboSolution(s_k.map(|x| (x as QuboType + 1) / 2))
+        let final_solution = s_k.map(|x| (x as QuboType + 1) / 2);
+        
+        debug!("Final Evaluation is {}", final_solution.transpose());
+        
+        QuboSolution(final_solution)
     }
 }

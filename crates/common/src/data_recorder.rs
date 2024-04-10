@@ -4,7 +4,7 @@ use std::io::Write;
 use std::path::Path;
 use serde::Serialize;
 
-pub trait DataRecorder {
+pub trait DataRecorder: Send + Sync {
     fn add_record(&mut self, record: impl Serialize) -> Result<(), Box<dyn Error>>;
 }
 
@@ -31,7 +31,7 @@ impl <T> CsvDataRecorder<T> where T: Write {
     }
 }
 
-impl <T> DataRecorder for CsvDataRecorder<T> where T: Write {
+impl <T> DataRecorder for CsvDataRecorder<T> where T: Write + Send + Sync {
     fn add_record(&mut self, record: impl Serialize) -> Result<(), Box<dyn Error>> {
         self.wtr.serialize(record)?;
         

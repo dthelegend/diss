@@ -15,7 +15,7 @@ impl Reduction<KSatProblem, QuboProblem> for Choi {
     fn reduce(sat_problem: &KSatProblem) -> (QuboProblem, Self) {
         const VERTEX_WEIGHT: QuboType = -1;
         const EDGE_PENALTY: QuboType = 0;
-        const EDGE_WEIGHT: QuboType = -(2 * VERTEX_WEIGHT) + EDGE_PENALTY;
+        const EDGE_WEIGHT: QuboType = -(VERTEX_WEIGHT) + EDGE_PENALTY;
 
         let total_number_of_clause_vars = sat_problem.clause_list.iter().map(|x| x.len()).sum();
         let mut matrix_constructor =

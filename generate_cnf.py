@@ -31,7 +31,7 @@ def print_dimacs(cnf):
 
 if __name__ == "__main__":
     num_variables = 10  # Change this to the desired number of variables
-    num_clauses = 15  # Change this to the desired number of clauses
+    num_clauses = 6  # Change this to the desired number of clauses
     max_literals_per_clause = 3  # Change this to the desired maximum number of literals per clause
     min_literals_per_clause = 3  # Change this to the desired maximum number of literals per clause
     # seed = 57

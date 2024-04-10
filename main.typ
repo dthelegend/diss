@@ -3,33 +3,37 @@
 #let title = "QuboSAT: A Boolean Satisfiability solver using a QUBO Reduction"
 
 #show: body => acmart(
-  title: title,
-  subtitle: none,
-  authors: (
-    (
-      name: "Daudi Wampamba",
-      affiliation: "University of Nottingham",
-      email: "psydw3@nottingham.ac.uk",
+    title: title,
+    subtitle: "Analysis of reductions from SAT to QUBO and am implementation of the solver for the satisfiability problem using a reduction to the",
+    authors: (
+        (
+        name: "Daudi Wampamba",
+        affiliation: "University of Nottingham",
+        email: "psydw3@nottingham.ac.uk",
+        ),
     ),
-  ),
-  ccs-concepts: (),
-  keywords: (),
-  conference: (
-      name: "University of Nottingham Master's Dissertation",
-      short: "Master's Dissertation",
-      year: "2024",
-      date: "April",
-      venue: "Nottingham, UK",
-  ),
-  copyright: (
-      doi: "N/A",
-      isbn: "N/A",
-      price: "Free",
-      mode: "rightsretained",
-  ),
-  review: false,
-  bibliography-file: "main.bib",
-  body
+    ccs-concepts: (),
+    keywords: (
+        "Quadratic Unconstrained Binary Optimization",
+        "Satisfiability",
+        "Solvers"
+    ),
+    conference: (
+        name: "University of Nottingham Master's Dissertation",
+        short: "Master's Dissertation",
+        year: "2024",
+        date: "April",
+        venue: "Nottingham, UK",
+    ),
+    copyright: (
+        doi: "N/A",
+        isbn: "N/A",
+        price: "Free",
+        mode: "rightsretained",
+    ),
+    review: false,
+    bibliography-file: "main.bib",
+    body
 )
 
 = Introduction

@@ -124,7 +124,7 @@ fn check_ising() {
     
     let (yy, _) = QuboProblem::try_from_ising_triplets(PROBLEM_SIZE, j.clone(), h.clone()).unwrap();
 
-    let (h_t, mut j_t) = yy.get_ising();
+    let (h_t, mut j_t, _) = yy.get_ising();
 
     j_t.set_diagonal(&h_t);
     assert_eq!(sut_internal * DMatrix::identity(PROBLEM_SIZE, PROBLEM_SIZE), j_t / 4);

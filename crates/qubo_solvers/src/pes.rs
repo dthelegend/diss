@@ -1,4 +1,5 @@
-use crate::es::{calculate_deltas_i, exhaustive_search_helper};
+use std::cmp::min_by_key;
+use crate::es::{calculate_deltas_i};
 use common::Solver;
 use log::Level::Warn;
 use log::{debug, log_enabled, warn};
@@ -10,6 +11,32 @@ use common::data_recorder::DataRecorder;
 
 pub struct ParallelExhaustiveSearch {
     beta: usize,
+}
+
+pub fn exhaustive_search_helper(
+    problem: &QuboProblem,
+    solution: QuboSolution,
+    deltas: Vec<QuboType>,
+    curr_eval: QuboType,
+    i: usize
+) -> (QuboSolution, QuboType) {
+    if i == 0 {
+        return (solution, curr_eval);
+    }
+    let solution_i = solution.flip(i - 1);
+    let eval_i = curr_eval + deltas[i - 1];
+
+    // Update deltas
+    let new_deltas = calculate_deltas_i(problem, &solution, &deltas, i);
+
+    let left_min = exhaustive_search_helper(problem, solution, deltas, curr_eval, i - 1);
+    let right_min = exhaustive_search_helper(problem, solution_i, new_deltas, eval_i, i - 1);
+
+    min_by_key(
+        left_min,
+        right_min,
+        |(QuboSolution(solution_vector), eval)| (*eval, -solution_vector.sum()),
+    )
 }
 
 impl ParallelExhaustiveSearch {
@@ -49,7 +76,7 @@ fn generate_prefixes(
 }
 
 impl Solver<QuboProblem> for ParallelExhaustiveSearch {
-    fn solve(&mut self, qubo_problem: &QuboProblem, _: Option<impl DataRecorder>) -> QuboSolution {
+    fn solve(&mut self, qubo_problem: &QuboProblem, mut logger: Option<impl DataRecorder>) -> QuboSolution {
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
 
         if log_enabled!(Warn)

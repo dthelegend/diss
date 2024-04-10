@@ -103,7 +103,7 @@ fn momentum_scaling_factor(k : usize) -> MaType {
 }
 
 fn temperature(k: usize) -> MaType {
-    const BETA_0 : MaType = 3e-4;
+    const BETA_0 : MaType = 1e-6;
     
     1.0 / (BETA_0 * MaType::ln(1.0 + k as MaType))
 }
@@ -165,12 +165,12 @@ impl Solver<QuboProblem> for MomentumAnnealer
             let t_k = temperature(k);
 
             let bernoulli = Bernoulli::new(p_k as f64).unwrap();
-            
+
             s_k.par_column_iter_mut().enumerate().for_each(|(i, mut s_ki)| {
                 let mut rng = thread_rng();
                 let gamma_k = gamma.sample(&mut rng);
                 let should_drop = bernoulli.sample(&mut rng);
-                
+
                 let jsk : MaType = (j_mat_sym.row(i) * &s_k1)[0] + if should_drop { 0.0 } else { w[i] * s_k1[i] };
 
                 s_ki[0] = (h_bias[i] + jsk - (t_k / 2.0) * gamma_k * s_ki[0]).signum()
@@ -187,9 +187,9 @@ impl Solver<QuboProblem> for MomentumAnnealer
         }
 
         let final_solution = s_k.map(|x| (x as QuboType + 1) / 2);
-        
+
         debug!("Final Evaluation is {}", final_solution.transpose());
-        
+
         QuboSolution(final_solution)
     }
 }

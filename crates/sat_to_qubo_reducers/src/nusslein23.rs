@@ -80,7 +80,7 @@ impl Reduction<KSatProblem, QuboProblem> for Nusslein23 {
     }
 
     fn up_model(&self, QuboSolution(solution_vector): QuboSolution) -> SatSolution {
-        let out_sv = DVector::from_fn(self.nb_vars, |i, _| solution_vector[2 * i] != 0);
+        let out_sv = DVector::from_fn(self.nb_vars, |i, _| solution_vector[i] != 0);
 
         SatSolution::Sat(out_sv)
     }

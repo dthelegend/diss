@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::iter::zip;
 
 use crate::helpers::sigma;
@@ -14,6 +14,16 @@ pub struct QuboProblem(CsrMatrix<QuboType>, usize);
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[repr(transparent)]
 pub struct QuboSolution(pub DVector<QuboType>);
+
+impl Display for QuboSolution {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for i in self.0.iter() {
+            write!(f, "{:1}", i)?;
+        }
+        
+        Ok(())
+    }
+}
 
 impl QuboSolution {
     pub fn flip(&self, i: usize) -> Self {

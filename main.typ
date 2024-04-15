@@ -4,7 +4,7 @@
 
 #show: body => acmart(
     title: title,
-    subtitle: "Analysis of reductions from SAT to QUBO and am implementation of the solver for the satisfiability problem using a reduction to the",
+    subtitle: "Analysis of reductions from SAT to QUBO and an implementation of a solver for the satisfiability problem using these techniques.",
     authors: (
         (
         name: "Daudi Wampamba",
@@ -34,11 +34,14 @@
     review: false,
     bibliography-file: "main.bib",
     body
-)
+)(
+= Abstract
 
 = Introduction
 
 In the realm of computational complexity, the Boolean Satisfiability Problem (SAT) stands as a fundamental challenge in modern computing. One of the first problems to be shown as NP-complete, there exists a wide body of work that has sought build and improve our approach to solving SAT problems with implications across various fields, ranging from artificial intelligence, to hardware verification and design, to scheduling, and more. As the size and complexity of SAT problems grow however, traditional methods begin to show their weakness.
+
+This project focuses on studying the gap between SAT and QUBO to create a SAT solver that employs a reduction from SAT to QUBO as a means to study the characteristics of such reductions and provide a platform that could potentially be expanded to run in on quantum computers. Leveraging the substantial body of research surrounding the reduction of SAT problems to QUBO and implementing QUBO on quantum and parallel computers, I aim to not only to create a parallel SAT solver, but also compare this approach with existing approaches.
 
 == Parallel & Quantum Computing
 
@@ -48,33 +51,50 @@ Parallel computing has become a pivotal technology in the modern world, playing 
 
 While parallel computing has gained prominence as a reliable method for improving performance, quantum computing remains in its experimental infancy, characterized by the unique abilities that quantum effects enable that offer the potential for groundbreaking speed-ups. These two computing paradigms have given rise to divergent strategies in algorithm development and problem-solving approaches.
 
+= Background
+
 == The SAT Problem and Modern Parallel SAT Solvers
 
-TODO: Define SAT with math
-// Given a set of boolean variables $S = {s_1, s_2, ...,  s_n}$ and a set of clauses $C = {c_1, c_2, ..., c_n}$
-
-// $ display(and_x^2 or_) $
+The SAT problem poses that given a set of boolean variables $S = {s_1, s_2, ...,  s_n}$ and a set of clauses that link these variables $C = {c_1, c_2, ..., c_n}$, find the configuration of the boolean variables $S^*$ that satisfies all clauses (if it exists).
 
 Modern sequential SAT Solvers rely on an iterative process of Boolean Constraint Propogation (BCP). BCP is a P-Hard Problem, and as such is naturally hard to parallelise. To get around this, modern parallel SAT Solvers use a mix of portfolio solving (where multiple solvers search the same space, but along different paths; This process can either be deterministic or stochastic), search space splitting, and load balancing in order to acheive parallelisation @martins_overview_2012. These methods are good enough that they will on average perform better than an equivalent sequential solvers but they suffer from poor overall core-utilisation, and memory access limitations when sharing clauses between threads.
 
 == The Quadratic Unconstrained Binary Optimization Problem
 
-TODO: Define QUBO with math
-// WOW
+The QUBO problem asks that given the boolean vector $x = { x_1, x_2, ..., x_n }$ and a symmetric/upper-triangular matrix of unconstrained values $Q \in \bR^{n,n}$ find the configuration of boolean variables $x^*$ that minimises the equation $x^TQx$.
 
-One notable feature of QUBO problems is their suitability for quantum computers, specifically through a technique known as quantum annealing. Quantum annealing is a quantum computing approach designed to efficiently solve optimization problems like QUBO. It leverages the principles of quantum mechanics to encode the QUBO solution in qubits that find solutions by , making it potentially faster than classical computers for certain optimization tasks.
+One notable feature of QUBO problems is their suitability for quantum computers, specifically through a technique known as quantum annealing. Quantum annealing is a quantum computing approach designed to efficiently find the ground state of an ising model. Ising models are normally defined by a hamiltonian function $E = \sum h_i \sigma_i + sum J_{<i, j>} \sigma_i \sigma_j$ which defines a set of biases $h$ and couplings $J$ between spin variables $\sigma \in { -1, 1 }$. By leveraging the principles of quantum mechanics to encode the QUBO solution in an ising model, quantum annealing can potentially solve QUBO faster than classical computers for certain optimization tasks and with significantly better scaling to larger problems.
 
-The intersection of QUBO problems and quantum computing has sparked significant research interest. This interest has also lead to an interest in solving QUBO problems using parallel computing, not only quantum computing. Various parallelization techniques have been developed for QUBO problems. Some of these techniques aim to simulate the quantum annealing process using parallel computing hardware, while others explore novel approaches to solve QUBO problems.
-
-This project focuses on bridging the gap between SAT and QUBO to create a SAT solver that employs a reduction from SAT to QUBO as a means to enable the easier parallelisation, and potentially quantum SAT solving. Leveraging the substantial body of research surrounding implementing QUBO on quantum and parallel computers, and the work that has been done to investigate SAT reductions to QUBO, I aim to not only to create a parallel SAT solver, but also compare this approach with existing approaches.
-
-Should the performance of the solver be good enough, I wish to submit this solver to the parallel track of the 2024 _#link("http://satcompetition.org/")[SAT Competition]_.
-
-= Motivation
+Due to the equivalence of the QUBO and ising model, QUBO has garnered significant research interest. This interest has also lead to an interest in solving QUBO problems using parallel computing, not only quantum computing. Various parallelization techniques have been developed for QUBO problems. Some of these techniques aim to simulate the quantum annealing process using parallel computing hardware, while others explore novel approaches to solve QUBO problems.
 
 = Related Work
 
 This project builds off a myriad of work in SAT reductions and in the field of Parallel QUBO.
+
+== Reductions
+
+The SAT to QUBO reductions implemented for this paper are:
+
+=== *Choi* @choi_different_2011
+This algorithm uses a reduction from K-SAT to 3-SAT to MIS then finally QUBO. The implementation I used for this paper converts choi directly from k-sat to QUBO. By connecting every node in a clause together we can produce a sub-graph for a clause. We then generate a sub-graph for every node and then with the sub-graph we connect any nodes with any conflicts (e.g. $\bar{x}$ and $x$). These graphs are equivalent to the corresponding QUBO problem in the adjacency matrix format.
+
+=== *Chancellor* @chancellor_direct_2016
+This directly encodes problems in a Hamiltonian function that defines the an ising midel which we convert into a QUBO problem. Each clause has an energy that is either $0$ if it is satisfied, or some positive value $g$ if it is not satisfied. This energy is summed across all the clauses to create the overall hamiltonian. This is the current state-of-the-art method, and the resulting QUBO Matrices are notably smaller than that of Choi for large problems.
+
+=== *Nusslein 2022* @nuslein_algorithmic_2022
+Scales better than chancellor for K-SAT problems by using a combination of efficient Ising reductions. It is supposed to scale better for QUBO formulations where the resulting QUBO graph has a number of edges that is sub-quadratic i.e. $|E| = Theta(|V|)$
+
+=== *Nusslein 2023* @nuslein_solving_2023
+From a preprint paper which is supposed to produce smaller QUBO matrices than Chancellor with similar characteristics, however, it is restricted to 3-SAT.
+
+== Solvers
+
+- *Simulated Annealing* // Implemented
+- *Parallel Exhaustive Search* @tao_work-time_2020 // Implemented (CPU Only)
+- *MOPSO* @fujimoto_solving_2021 // WIP
+- *Momentum Annealing* @okuyama_binary_2019 // Not completed
+- *Simulated Quantum Annealing* @volpe_integration_2023
+- *Divers Adaptive Bulk Search* @nakano_diverse_2022 // This is the same as PES
 
 = Description of the work
 
@@ -93,21 +113,10 @@ Input from the user is Processed into the SAT Problem instance. The SAT Problem 
 == Reduction Algorithms
 
 The plan is for the solver to implements 5 reduction algorithms:
-- *Choi* @choi_different_2011 which uses a reduction from K-SAT to 3-SAT to MIS then finally QUBO
-- A novel method which reduces K-SAT to Max-2-SAT and then to QUBO // Didn't implement in the end
-- *Chancellor* @chancellor_direct_2016 which directly encodes problems in a Hamiltonian function that defines the QUBO Matrix. This is the current state-of-the-art method, and the resulting QUBO Matrices are notably smaller than that of Choi.
-- *Nusslein 2022* @nuslein_algorithmic_2022 is similar to Chancellor, but is supposed to scale better for QUBO formulations where the resulting QUBO graph has a number of edges that is sub-quadratic i.e. $|E| = Theta(|V|)$
-- *Nusslein 2023* @nuslein_solving_2023 is a from a preprint paper which is supposed to produce smaller QUBO matrices than Chancellor with similar characteristics
-
+- 
 == QUBO Solving Algorithms
 
 The plan is for the solver to implement 6 QUBO solving algorithms:
-- *Simulated Annealing* // Implemented
-- *Parallel Exhaustive Search* @tao_work-time_2020 // Implemented (CPU Only)
-- *MOPSO* @fujimoto_solving_2021 // WIP
-- *Momentum Annealing* @okuyama_binary_2019 // Not completed
-- *Simulated Quantum Annealing* @volpe_integration_2023
-- *Divers Adaptive Bulk Search* @nakano_diverse_2022 // This is the same as PES
 
 TODO: High level overview on each of these methods and how they work
 TODO: FDCC

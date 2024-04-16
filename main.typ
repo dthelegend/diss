@@ -89,8 +89,11 @@ From a preprint paper which is supposed to produce smaller QUBO matrices than Ch
 
 == Solvers
 
-- *Simulated Annealing* // Implemented
-- *Parallel Exhaustive Search* @tao_work-time_2020 // Implemented (CPU Only)
+=== *Simulated Annealing*
+This is implemented as a reference algorithm to show how a simple optimisation algorithm performs
+
+== *Parallel Exhaustive Search* @tao_work-time_2022
+This algorithm is implemented in both sequentially and in parallel and provides a Work-time optimal 
 - *MOPSO* @fujimoto_solving_2021 // WIP
 - *Momentum Annealing* @okuyama_binary_2019 // Not completed
 - *Simulated Quantum Annealing* @volpe_integration_2023
@@ -270,3 +273,4 @@ One of the things I overlooked in my proposal was looking into other more tradit
 - Evaluate the solver's performance against existing solvers and quantum computing approaches.
 - Record and analyze the results.
 - Compile all the research, development, and testing findings into a comprehensive final report.
+)

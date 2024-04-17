@@ -14,7 +14,7 @@ pub struct CsvDataRecorder<T: Write> {
 
 impl CsvDataRecorder<File> {
     pub fn new_from_path<P>(path: P) -> std::io::Result<Self> where P : AsRef<Path> {
-        let fd = File::create_new(path)?;
+        let fd = File::create(path)?;
 
         Ok(Self::new_from_writer(fd))
     }

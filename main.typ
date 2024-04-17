@@ -33,9 +33,8 @@
     ),
     review: false,
     bibliography-file: "main.bib",
-    body
-)(
-= Abstract
+    abstract: [TODO]
+)[
 
 = Introduction
 
@@ -61,9 +60,9 @@ Modern sequential SAT Solvers rely on an iterative process of Boolean Constraint
 
 == The Quadratic Unconstrained Binary Optimization Problem
 
-The QUBO problem asks that given the boolean vector $x = { x_1, x_2, ..., x_n }$ and a symmetric/upper-triangular matrix of unconstrained values $Q \in \bR^{n,n}$ find the configuration of boolean variables $x^*$ that minimises the equation $x^TQx$.
+The QUBO problem asks that given the boolean vector $x = { x_1, x_2, ..., x_n }$ and a symmetric/upper-triangular matrix of unconstrained values $Q in RR^(n,n)$ find the configuration of boolean variables $x^*$ that minimises the equation $x^T Q x$.
 
-One notable feature of QUBO problems is their suitability for quantum computers, specifically through a technique known as quantum annealing. Quantum annealing is a quantum computing approach designed to efficiently find the ground state of an ising model. Ising models are normally defined by a hamiltonian function $E = \sum h_i \sigma_i + sum J_{<i, j>} \sigma_i \sigma_j$ which defines a set of biases $h$ and couplings $J$ between spin variables $\sigma \in { -1, 1 }$. By leveraging the principles of quantum mechanics to encode the QUBO solution in an ising model, quantum annealing can potentially solve QUBO faster than classical computers for certain optimization tasks and with significantly better scaling to larger problems.
+One notable feature of QUBO problems is their suitability for quantum computers, specifically through a technique known as quantum annealing. Quantum annealing is a quantum computing approach designed to efficiently find the ground state of an ising model. Ising models are normally defined by a hamiltonian function $E = sum h_i sigma_i + sum J_(<i, j>) sigma_i sigma_j$ which defines a set of biases $h$ and couplings $J$ between spin variables $sigma in { -1, 1 }$. By leveraging the principles of quantum mechanics to encode the QUBO solution in an ising model, quantum annealing can potentially solve QUBO faster than classical computers for certain optimization tasks and with significantly better scaling to larger problems.
 
 Due to the equivalence of the QUBO and ising model, QUBO has garnered significant research interest. This interest has also lead to an interest in solving QUBO problems using parallel computing, not only quantum computing. Various parallelization techniques have been developed for QUBO problems. Some of these techniques aim to simulate the quantum annealing process using parallel computing hardware, while others explore novel approaches to solve QUBO problems.
 
@@ -76,140 +75,113 @@ This project builds off a myriad of work in SAT reductions and in the field of P
 The SAT to QUBO reductions implemented for this paper are:
 
 === *Choi* @choi_different_2011
-This algorithm uses a reduction from K-SAT to 3-SAT to MIS then finally QUBO. The implementation I used for this paper converts choi directly from k-sat to QUBO. By connecting every node in a clause together we can produce a sub-graph for a clause. We then generate a sub-graph for every node and then with the sub-graph we connect any nodes with any conflicts (e.g. $\bar{x}$ and $x$). These graphs are equivalent to the corresponding QUBO problem in the adjacency matrix format.
+This algorithm uses a reduction from K-SAT to 3-SAT to MIS then finally QUBO. The implementation I used for this paper converts choi directly from k-sat to QUBO. By connecting every node in a clause together we can produce a sub-graph for a clause. We then generate a sub-graph for every node and then with the sub-graph we connect any nodes with any conflicts (e.g. $not x$ and $x$). These graphs are equivalent to the corresponding QUBO problem in the adjacency matrix format.
 
 === *Chancellor* @chancellor_direct_2016
-This directly encodes problems in a Hamiltonian function that defines the an ising midel which we convert into a QUBO problem. Each clause has an energy that is either $0$ if it is satisfied, or some positive value $g$ if it is not satisfied. This energy is summed across all the clauses to create the overall hamiltonian. This is the current state-of-the-art method, and the resulting QUBO Matrices are notably smaller than that of Choi for large problems.
+This directly encodes problems in a Hamiltonian function for an ising model. That can be converted into a QUBO problem for our solver in $O(n^2)$ time. Each clause has an energy that is either $0$ if it is satisfied, or some positive value $g$ if it is not satisfied. This energy is summed across all the clauses to create the overall hamiltonian. This is the current state-of-the-art method, and the resulting QUBO Matrices are notably smaller than that of Choi for large problems.
 
 === *Nusslein 2022* @nuslein_algorithmic_2022
-Scales better than chancellor for K-SAT problems by using a combination of efficient Ising reductions. It is supposed to scale better for QUBO formulations where the resulting QUBO graph has a number of edges that is sub-quadratic i.e. $|E| = Theta(|V|)$
+Scales better than chancellor for K-SAT problems by using a combination of efficient Ising reductions for clauses of length $2$ and $4+$. It scales better for QUBO formulations where the resulting QUBO graph has a number of edges that is sub-quadratic i.e. $|E| = Theta(|V|)$
 
 === *Nusslein 2023* @nuslein_solving_2023
-From a preprint paper which is supposed to produce smaller QUBO matrices than Chancellor with similar characteristics, however, it is restricted to 3-SAT.
+There are two formulations listed in this paper. Both are implemented, however, we will focus on the $(n+m)$ reduction.
+It produces sane sized QUBO matrices to Chancellor with similar characteristics, however, it is restricted to 3-SAT. This reduction is also multi-objective, requiring the maximisation of $|sum x_i|$ in order for it to produce SAT outcomes.
 
 == Solvers
 
 === *Simulated Annealing*
-This is implemented as a reference algorithm to show how a simple optimisation algorithm performs
+This is implemented as a reference algorithm to show how a simple optimisation algorithm performs across the different reductions
 
-== *Parallel Exhaustive Search* @tao_work-time_2022
-This algorithm is implemented in both sequentially and in parallel and provides a Work-time optimal 
-- *MOPSO* @fujimoto_solving_2021 // WIP
-- *Momentum Annealing* @okuyama_binary_2019 // Not completed
-- *Simulated Quantum Annealing* @volpe_integration_2023
-- *Divers Adaptive Bulk Search* @nakano_diverse_2022 // This is the same as PES
+=== *Parallel Exhaustive Search* @tao_work-time_2020
+This algorithm is implemented both sequentially and in parallel and provides a Work-time optimal way to search the entire QUBO space. The complexity of this is $O(2^n / p +n^2)$.
 
-= Description of the work
-
-= Methodology
-
-The solver will be evaluted using the #link("https://satcompetition.github.io/2023/downloads.html")[SAT Competition 2023 Parallel Track benchmarks]. This provides a set of comprehensive benchmarks over both real and theoretical problems, and a standard point of comparison with a swathe of modern parallel SAT solvers. The main metric that will be measured for the solver is time to solve.
+=== *Momentum Annealing* @okuyama_binary_2019
+Momentum annealing is similar to simulated annealing as a markov chain process, but unlike simulated annealing, momentum annealing uses a second-order markov chain that uses a bipartite representation of the ising model that then gradually stabilises both sides of the graph to the lowest energy.
 
 = Design
 
-The solver is designed to be flexible and allow for the implementation of many alternative backends allowing for different reduction and solving algorithms to easily be compared to one another. The general flow for solving a problem is shown below.
+The solver is designed to be flexible and allow for the implementation of many alternative backends allowing for different reduction and solving algorithms to easily be added. The general flow for solving a problem is shown in @solver-layout.
 
-TODO: Image of solver pipeline
+Input from the user is processed into the SAT Problem instance. The SAT Problem is then reduced into a QUBO problem using one of the specified algorithms. We can then solve the reduced QUBO problem with another specified algorithm. Once we have a solution, we present it to the user.
 
-Input from the user is Processed into the SAT Problem instance. The SAT Problem is then reduced into a QUBO problem using one of the specified algorithms. We can then solve the reduced QUBO problem with another specified algorithm. Once we have a solution, we present it to the user.
+#figure(image("./solver_layout.png"), caption: [The data flow from input to output of the solver], placement: auto) <solver-layout>
 
-== Reduction Algorithms
-
-The plan is for the solver to implements 5 reduction algorithms:
-- 
-== QUBO Solving Algorithms
-
-The plan is for the solver to implement 6 QUBO solving algorithms:
-
-TODO: High level overview on each of these methods and how they work
-TODO: FDCC
-TODO BASIN ANALYSIS
-TODO BIG VALLEY STRUCTURE TSP
-TODO CLusters
+There is a logger that can be used to record information about the energy of the solution as the solver progresses.
 
 = Implementation
 
-The Solver is written in Rust. Rust was chosen as it has good tools for abstraction of problems and a strong type system that makes it easy to encode problems in. Additionally it is fast and has really good tools for concurrency which will make coding the parallel sections much easier.
+The Solver is written in Rust. Rust was chosen as it has good tools for abstraction of problems and a strong type system that makes it easy to encode problems in. Additionally it is fast and has great tools for CPU concurrency which made coding the parallel sections much easier.
 
 == Input/Output
 
-Following typical SAT solver convention and in-line with the competition requirements, the solver uses the DIMACS Input format for inputing problem instances. Included in this project is a python file `generate_cnf.py` for generating random (mostly unsat) cnf instances.
+Following typical SAT solver convention and in-line with the competition requirements, the solver uses the DIMACS Input format for inputing problem instances. Included in this project is a python file `generate_cnf.py` for generating random cnf instances.
 
 The solver then outputs `SAT` with a model, `UNSAT`, or `UNKNOWN`.
 
 == Problem & Solution Encoding
 
-Problems are implemented as Rust traits which makes it easy to implement different problems which can be reduced into one another in definitive ways. There is an interfaces that all problems implement, `Problem`. There is also `Reduction` trait that provides an interface for problems to be reduced from one to another, and a `SolutionReductionReverser` for up-modelling solutions without requiring the whole original problem.
+Problems are implemented as Rust traits which makes it easy to implement different problems which can be reduced into one another in definitive ways. There is an interface that all problems implement, `Problem`. There is also `Reduction` trait that provides an interface for problems to be reduced from one to another. Using a reduction to solve a problem creates a new struct with the information needed for up-modelling solutions without requiring the whole original problem. The solver interface allows the easy implementation of solvers for problems.
+
 ```rust
-pub trait Problem<SolutionType, EvaluationType> {
-    fn solve(&self) -> SolutionType;
-    fn validate_solution(&self, solution: &SolutionType) -> EvaluationType;
+pub trait Problem {
+    type Solution;
 }
 
-pub trait Reduction<TSolutionType, TProblem: Problem<TSolutionType>, USolutionType, UProblem: Problem<USolutionType>> {
-    fn reduce_problem(&self, problem: &TProblem) -> (UProblem, Box<dyn SolutionReductionReverser<TSolutionType, TProblem, USolutionType, UProblem>>);
+pub trait Reduction<U, V>
+where
+    U: Problem,
+    V: Problem,
+{
+    fn reduce(problem: &U) -> (V, Self);
+
+    fn up_model(&self, solution: V::Solution) -> U::Solution;
 }
 
-pub trait SolutionReductionReverser<TSolutionType, TProblem: Problem<TSolutionType>, USolutionType, UProblem: Problem<USolutionType>> {
-    fn reverse_reduce_solution(&self, solution: USolutionType) -> TSolutionType;
+pub trait Solver<T>
+where
+    T: Problem,
+{
+    fn solve(&mut self, problem: &T, logger: Option<impl DataRecorder>) -> T::Solution;
 }
-
 ```
-This makes it trivial to add new Problems to the solver as intermediary reductions for example the Choi KSAT to QUBO Reduction requires a reduction to 3SAT and then to Maximum Independent Set, which has an identical QUBO reperesntation
+
+This makes it trivial to add new Problems to the solver as intermediary reductions for example the Choi KSAT to QUBO reduction is shown.
+
 ```rust
-pub enum KSatToQuboReduction {
-    Choi,
-    Chancellor,
-    // ...
+// Choi scales directly in the number of clause variables and therefore the size of the problem
+pub struct Choi {
+    map: Vec<(Vec<usize>, Vec<usize>)>,
 }
 
-impl Reduction<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboReduction {
-    fn reduce_problem(&self, problem: &KSatProblem) -> QuboProblem {
-        match self {
-            KSatToQuboReduction::Choi => {
-                let (threesat_problem, threesat_reverser) = KSatToThreeSatReduction.reduce_problem(problem);
-                let (qubo_problem, qubo_reverser) = ThreeSatToQuboReduction::Choi.reduce_problem(threesat_problem);
-
-                (qubo_problem, Box::new(KSatToQuboSolutionReductionReverser::Choi { threesat_reverser, qubo_reverser}))
-            },
-            // ...
-        }
+impl Reduction<KSatProblem, QuboProblem> for Choi {
+    fn reduce(sat_problem: &KSatProblem) -> (QuboProblem, Self) {
+        ...
     }
-}
 
-impl SolutionReductionReverser<SatSolution, KSatProblem, QuboSolution, QuboProblem> for KSatToQuboSolutionReductionReverser {
-    fn reverse_reduce_solution(&self, solution: QuboSolution) -> SatSolution {
-        match self {
-            KSatToQuboSolutionReductionReverser::Choi {qubo_reverser, threesat_reverser} => {
-                let threesat_solution = qubo_reverser.reverse_reduce_solution(solution);
-
-                threesat_reverser.reverse_reduce_solution(threesat_solution)
-            },
-            // ...
-        }
+    fn up_model(&self, qubo_solution: QuboSolution) -> SatSolution {
+        ...
     }
 }
 ```
-The underlying structure of problems can vary a lot, but rust allows us to be flexible with that as long as we implement the traits above. The QUBO problem uses a sparse matrix representation in order to improve memory efficiency. The problem also stores how it should be solved alongside it.
+
+The underlying structure of problems can vary a lot, but rust allows us to be flexible with that as long as we implement the traits above. The QUBO problem uses a sparse matrix representation in order to improve memory efficiency. The problem representation is agnostic to the reduction used and the solver used to generate its solutions.
+
 ```rust
-pub enum QuboProblemBackend {
-    ParallelExhaustiveSearch,
-    MopsoParallel,
-    // ...
-}
 // ...
 pub struct QuboProblem {
     problem_matrix: matrix::SparseMatrix<i32>,
-    problem_backend: QuboProblemBackend
+    ...
 }
 ```
+
 The SAT problem doesn't implement any solve function as it is tangential to this project. SAT instances are stored as the number of variables and a list of of lists of variables analagous to conjunctive normal form, each variable having whether it is negated (`true` for not negated, `false` for negated) and a which variable number it corresponds to.
 ```rust
 pub struct KSatVariable(pub bool, pub usize);
+
 pub struct KSatProblem(pub usize, Vec<Vec<KSatVariable>>);
 ```
 
-Solutions can be any rust type which makes defining problems very flexible, for example when solving a SAT problem there are 3 possible outcomes, `SAT` or `UNSAT` or `UNKNOWN`, however for QUBO problems, there is only one form of solution which is the list of binary variables.
+Solutions can be any rust type which makes defining problems very flexible, for example when solving a SAT problem there are 3 possible outcomes, `SAT` (with a model) or `UNSAT` or `UNKNOWN`, however for QUBO problems, there is only one form of solution which is the list of binary variables.
 ```rust
 pub enum KSatSolution {
     Sat(Vec<bool>),
@@ -217,60 +189,48 @@ pub enum KSatSolution {
     Unknown
 }
 // ...
-pub struct QuboSolution(pub Vec<bool>);
+pub struct QuboSolution(pub DVector<bool>);
 ```
 
-== Reductions
+= Evaluation
 
-TODO: Intricate overview on each of the reduction methods and how they work
+== Methodology
 
-== Solving
+The solver will be evaluted using the #link("https://satcompetition.github.io/2023/downloads.html")[SAT Competition 2023 Parallel Track benchmarks]. This provides a set of comprehensive benchmarks over both real and theoretical problems, and a standard point of comparison with a swathe of modern parallel SAT solvers. The main metric that will be measured for the solver is time to solve.
 
-TODO: Intricate overview on each of the qubo backends methods and how they work
+The main way that we will analyse our reductions is using fitness distance correlation coefficient@fdcc, as well as analysing how well each of the reductions performed with our solvers, and by comparing the growth characteristics of each of the problems.
 
-= Progress
+== Results
 
-== Project Management
+DATA MISSING
 
-Work on the project seems to be going smoothly. The work previously identified for Phase One has been completed and some of the Phase two work has begun to be tackled.
+= Reflections
 
-The current main challenge to implementation is the current inability to "un-reduce" solutions to their equivalent solution in the original problem. This might not be possible or may be expensive for some of the reductions.
+== Difficulties Encountered& Unimplemented Features
 
-Most of the work now has to focus on the implementation of the reductions and solvers outlined above and then benchmarking them to find the best possible combination of QUBO Solver and Sat Solver as these reductions and solutions have varying properties that may cause some solvers to be more efficient for some reductions than others.
+=== GPU programming & GOU Parallel MOPSO
 
-One of the things I overlooked in my proposal was looking into other more traditional parallel SAT solvers for inspiration. This is something I plan to amend while I focus on implementing the other elements of the project.
+GPU programming is still in its infancy in Rust, however, I managed to develop an initial solution with C FFI to bind some CUDA code to my code. The CUDA code however did not perform nearly as well as the paper I was reprodicing with similar hardware. After failing to get more information on the GPU code, I contacted the paper authors, however they were not able to provide the source for my use.
 
-*Phase One: Research [#strike()[November]December]*
+The current code has a solution for binding GPU C++ code using SYCL, however there was not enough time after implementing that for GPU Parallel MOPSO, thusly it was not implemented/evaluated for this paper.
 
-- #strike()[Conduct a literature review to identify potential parallel algorithms for solving QUBO problems.]
-- #strike()[Summarize the strengths and weaknesses of these algorithms.]
-- #strike()[Create a comprehensive list of references in this area.]
-- #strike()[Investigate existing methods for reducing SAT problems to QUBO.]
-- #strike()[Examine the theoretical underpinnings of these reductions and their practical applicability.]
-- #strike()[Identify key challenges and opportunities in this field.]
-- #strike()[Compile the findings into an interim report discussing the chosen research direction.]
-- Research and dissect other Sat solvers in the hopes of understanding how they simplify and split solution spaces efficiently
+=== CLI
 
-*Phase Two: Design & Implementation [December - January]*
+The command line interface of the program is sufficient for testing and collecting data, but there are some smaller convenience features that were never integrated, namely Backend Selection, Reduction Selection, and convenience methods for verifying problems.
 
-- #strike()[Specify the solver's basic logic, data structures, and optimization techniques.]
-- Analyse the reduction algorithm's compatibility with parallelization.
-- Write the code for the SAT to QUBO reduction algorithms.
-- Test the solver with sample SAT instances to validate its functionality.
-- Code the parallel QUBO solving algorithms.
-- Conduct initial performance tests for the parallel solver.
-- Verify that the solver is always correct.
-- Test the solver on various benchmark problems to assess its initial performance.
+=== Logging
 
-*Phase Three: Testing, Optimization, and Refinement [February - March]*
+Although logging is supported, I am not very happy with the implementation of logging as it is, it could be better with use of the native logging rather than using a CSV writer.
 
-- Collect and analyze data on the solver's performance, including execution times and solution quality.
-- Begin writing detailed documentation on the solver's mechanism, inputs, and outputs.
-- Identify performance bottlenecks and areas for improvement.
-- Implement optimization techniques to enhance the solver's efficiency.
-- Conduct comparative tests to assess the impact of optimizations.
-- Execute extensive testing on the refined solver using a diverse set of Max-SAT problems.
-- Evaluate the solver's performance against existing solvers and quantum computing approaches.
-- Record and analyze the results.
-- Compile all the research, development, and testing findings into a comprehensive final report.
-)
+== Future development
+
+The project is adequately laid out for supporting future development and especially 3rd party libraries and integrations for adding new problems, reductions, and solvers, and integrating it into modern applications. In future I would like to better document the APIs that are exposed and produce a more expansive set of solvers. Due to the underlying flexibility if tge code, I can see this becoming the basis of a new library of reductions and solvers for the Rust programming language.
+
+Potentially, using PyO3 for Rust, this project could be extended to provide APIs for python, providing a fast solver platform for researchers to implement their own solvers.
+
+Providing a toolkit to build hard optimisation problem solvers is also what I believe is the largest contribution of this project. The code is released under the LGPL license, for the advancement of research and the benefit of all.
+
+= Summary
+
+TODO
+]

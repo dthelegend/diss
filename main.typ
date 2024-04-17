@@ -106,6 +106,8 @@ Input from the user is processed into the SAT Problem instance. The SAT Problem 
 
 #figure(image("./solver_layout.png"), caption: [The data flow from input to output of the solver], placement: auto) <solver-layout>
 
+The fundamental design of the logger has stayed mostly the same, over the course of the project, as the flow is relatively simple and lean.
+
 There is a logger that can be used to record information about the energy of the solution as the solver progresses.
 
 = Implementation
@@ -174,7 +176,8 @@ pub struct QuboProblem {
 }
 ```
 
-The SAT problem doesn't implement any solve function as it is tangential to this project. SAT instances are stored as the number of variables and a list of of lists of variables analagous to conjunctive normal form, each variable having whether it is negated (`true` for not negated, `false` for negated) and a which variable number it corresponds to.
+The SAT problem doesn'thave any implemented solvers as it is tangential to this project. SAT instances are stored as the number of variables as a list of of lists of variables analagous to conjunctive normal form, each variable having whether it is negated (`true` for not negated, `false` for negated) and a which variable number it corresponds to. The alternative form is storing a large binary matrix with $2 * N$ columns and $M$ rows. This style of matrix has faster row/column access and is faster for calculating satisfiability, but is slower to access the list of variables in clauses (it's a sparser representation).
+
 ```rust
 pub struct KSatVariable(pub bool, pub usize);
 
@@ -192,6 +195,10 @@ pub enum KSatSolution {
 pub struct QuboSolution(pub DVector<bool>);
 ```
 
+The problem, reduction, and solver traits have changed significantly over the course of the project. Initially there was an overly complex nest of trais and implementations, sub-implementations, and state passing. This led to a frustration with implementing new solvers and reductions, and the eventual removal of these traits and a reversion to simply using the structs as is. Eventually with more familiarity with the rust programming language, I was able to slim down the traits such that they could be easily reimplemented, and still provide the same level of flexibility that I was trying to acheive at the beginning.
+
+The package (referred to as crates in rust) stucture has also seen a massive overhaul to support seriously extending the project into something that is not only maintainable, but also can accomodate external collaborators and expansion. The project is now split into 6 separate crates, each problem has a crate dedicated to it, while reductions and solvers share their respective crates. The project has a common crate which then provides the common interfaces and finally a CLI crate that contains a binary that an end-user can run the solver on `.cnf` files.
+
 = Evaluation
 
 == Methodology
@@ -208,7 +215,7 @@ DATA MISSING
 
 == Difficulties Encountered& Unimplemented Features
 
-=== GPU programming & GOU Parallel MOPSO
+=== GPU programming & GPU Parallel MOPSO
 
 GPU programming is still in its infancy in Rust, however, I managed to develop an initial solution with C FFI to bind some CUDA code to my code. The CUDA code however did not perform nearly as well as the paper I was reprodicing with similar hardware. After failing to get more information on the GPU code, I contacted the paper authors, however they were not able to provide the source for my use.
 

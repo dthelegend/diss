@@ -239,5 +239,5 @@ Providing a toolkit to build hard optimisation problem solvers is also what I be
 
 = Summary
 
-TODO
+Summary
 ]

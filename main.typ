@@ -1,23 +1,36 @@
-#import "@preview/charged-ieee:0.1.0": ieee
+#import "acmart.typ": acmart
 
-#let title = "QuboSAT: Leveraging QUBO for Parallel and Quantum Boolean Satisfiability"
+#let title = "Leveraging QUBO for Parallel and Quantum solving of Boolean Satisfiability"
 
-#show: ieee.with(
-    title: title,
-    subtitle: "Analysis of reductions from SAT to QUBO and an implementation of a solver for the satisfiability problem using these techniques.",
+#show: acmart.with(
+    title: title, 
     authors: (
         (
         name: "Daudi Wampamba",
-        affiliation: "University of Nottingham",
+        organization: "University of Nottingham",
         email: "psydw3@nottingham.ac.uk",
         ),
     ),
-    index-terms: (
+    keywords: (
         "Quadratic Unconstrained Binary Optimization",
         "Satisfiability",
-        "Solvers"
+        "Solvers",
+        "NP-Hard",
+        "Optimisation",
     ),
-    review: false,
+    copyright: (
+        mode: "rightsretained"
+    ),
+    ccs-concepts: (
+        (
+            generic: "Computing methodologies",
+            specific: (
+                "Optimisation algorithms",
+                "Parallel algorithms",
+            )
+        ),
+    ),
+    conference: none,
     bibliography-file: "main.bib",
     abstract: [Solving the boolean satisfiability (SAT) problem is a fundamental challenge in computer science with wide-ranging applications. This project investigates using reductions from SAT to the quadratic unconstrained binary optimization (QUBO) problem as a novel approach to SAT solving. By leveraging substantial prior work on SAT-to-QUBO reductions and solving QUBO problems with quantum and parallel computing techniques, we aim to create a high-performance parallel SAT solver. Several existing SAT-to-QUBO reduction algorithms are implemented, including approaches by Choi, Chancellor, and Nusslein. The reduced QUBO instances are then solved using techniques like simulated annealing, parallel exhaustive search, and momentum annealing. Benchmarking is performed on standard SAT Competition instances, comparing solving time and reduction quality metrics like fitness distance correlation. While some features like GPU acceleration were left unimplemented, the flexible design allows straightforward extension to new reductions and solvers. Overall, this work provides a toolkit for developing QUBO-based optimization problem solvers with potential applications in quantum computing.]
 )
@@ -44,13 +57,19 @@ The SAT problem poses that given a set of boolean variables $S = {s_1, s_2, ...,
 
 Modern sequential SAT Solvers rely on an iterative process of Boolean Constraint Propogation (BCP). BCP is a P-Hard Problem, and as such is naturally hard to parallelise. To get around this, modern parallel SAT Solvers use a mix of portfolio solving (where multiple solvers search the same space, but along different paths; This process can either be deterministic or stochastic), search space splitting, and load balancing in order to acheive parallelisation @martins_overview_2012. These methods are good enough that they will on average perform better than an equivalent sequential solvers but they suffer from poor overall core-utilisation, and memory access limitations when sharing clauses between threads.
 
-== The Quadratic Unconstrained Binary Optimization Problem
+== The Quadratic Unconstrained Binary Optimization (QUBO) Problem
 
-The QUBO problem asks that given the boolean vector $x = { x_1, x_2, ..., x_n }$ and a symmetric/upper-triangular matrix of unconstrained values $Q in RR^(n,n)$ find the configuration of boolean variables $x^*$ that minimises the equation $x^T Q x$.
+The QUBO problem asks that given the boolean vector $x = { x_1, x_2, ..., x_n }$ and a symmetric/upper-triangular matrix of unconstrained values $Q in RR^(n,n)$, find the configuration of boolean variables $x^*$ that minimises the equation $x^T Q x$.
 
 One notable feature of QUBO problems is their suitability for quantum computers, specifically through a technique known as quantum annealing. Quantum annealing is a quantum computing approach designed to efficiently find the ground state of an ising model. Ising models are normally defined by a hamiltonian function $E = sum h_i sigma_i + sum J_(<i, j>) sigma_i sigma_j$ which defines a set of biases $h$ and couplings $J$ between spin variables $sigma in { -1, 1 }$. By leveraging the principles of quantum mechanics to encode the QUBO solution in an ising model, quantum annealing can potentially solve QUBO faster than classical computers for certain optimization tasks and with significantly better scaling to larger problems.
 
 Due to the equivalence of the QUBO and ising model, QUBO has garnered significant research interest. This interest has also lead to an interest in solving QUBO problems using parallel computing, not only quantum computing. Various parallelization techniques have been developed for QUBO problems. Some of these techniques aim to simulate the quantum annealing process using parallel computing hardware, while others explore novel approaches to solve QUBO problems.
+
+= Motivation
+
+The motivation for this project came from a desire to see more performant parallel solvers for the SAT problem. Direct solving methods are currently very well understood and the scope of the project would not allow for time to investigate a novel method for direct solving, but using a reduction was not very common in SAT solving. At the start the idea was to use focus on identifying potential problems to reduce to that had existing efficient reductions, and parallel algorithms. Initial investigations focused on 2-Graph Colouring/Maximum Independent Set as there exists some established parallel algorithms. QUBO was chosen eventually due to its extensibility to quantum computing as well as parallel computing.
+
+In order to create an effective parallel solver for SAT using QUBO. It is essential to understand the resulting search spaces of the problems, not only the size of the problems produced (although that can be an important factor in solver performance).
 
 = Related Work
 
@@ -61,13 +80,13 @@ This project builds off a myriad of work in SAT reductions and in the field of P
 The SAT to QUBO reductions implemented for this paper are:
 
 === *Choi* @choi_different_2011
-This algorithm uses a reduction from K-SAT to 3-SAT to MIS then finally QUBO. The implementation I used for this paper converts choi directly from k-sat to QUBO. By connecting every node in a clause together we can produce a sub-graph for a clause. We then generate a sub-graph for every node and then with the sub-graph we connect any nodes with any conflicts (e.g. $not x$ and $x$). These graphs are equivalent to the corresponding QUBO problem in the adjacency matrix format.
+This algorithm uses a reduction from K-SAT to 3-SAT to MIS then finally QUBO. The implementation I used for this paper converts K-SAT directly into QUBO. By connecting every node in a clause together we can produce a sub-graph for a clause. We then generate a sub-graph for every node and then with the sub-graph we connect any nodes with any conflicts (e.g. $not x$ and $x$). These graphs are equivalent to the corresponding QUBO problem in the adjacency matrix format.
 
 === *Chancellor* @chancellor_direct_2016
-This directly encodes problems in a Hamiltonian function for an ising model. That can be converted into a QUBO problem for our solver in $O(n^2)$ time. Each clause has an energy that is either $0$ if it is satisfied, or some positive value $g$ if it is not satisfied. This energy is summed across all the clauses to create the overall hamiltonian. This is the current state-of-the-art method, and the resulting QUBO Matrices are notably smaller than that of Choi for large problems.
+This directly encodes problems in a hamiltonian function. That can be converted into a QUBO problem for our solver in $O(n^2)$ time. Each clause has an energy that is either $0$ if it is satisfied, or some positive value $g$ if it is not satisfied. This energy is summed across all the clauses to create the overall hamiltonian. This is the current state-of-the-art method, and the resulting QUBO Matrices are notably smaller than that of Choi for large problems.
 
 === *Nusslein 2022* @nuslein_algorithmic_2022
-Scales better than chancellor for K-SAT problems by using a combination of efficient Ising reductions for clauses of length $2$ and $4+$. It scales better for QUBO formulations where the resulting QUBO graph has a number of edges that is sub-quadratic i.e. $|E| = Theta(|V|)$
+Scales better than Chancellor for K-SAT problems by using a combination of efficient Ising reductions for clauses of length $2$ and $3$, and a function for breaking apart larger clause more efficiently than chancellor. It scales better for QUBO formulations where the resulting QUBO graph has a number of edges that is sub-quadratic i.e. $|E| = Theta(|V|)$
 
 === *Nusslein 2023* @nuslein_solving_2023
 There are two formulations listed in this paper. Both are implemented, however, we will focus on the $(n+m)$ reduction.
@@ -186,7 +205,7 @@ pub struct QuboSolution(pub DVector<bool>);
 
 The problem, reduction, and solver traits have changed significantly over the course of the project. Initially there was an overly complex nest of trais and implementations, sub-implementations, and state passing. This led to a frustration with implementing new solvers and reductions, and the eventual removal of these traits and a reversion to simply using the structs as is. Eventually with more familiarity with the rust programming language, I was able to slim down the traits such that they could be easily reimplemented, and still provide the same level of flexibility that I was trying to acheive at the beginning.
 
-The package (referred to as crates in rust) stucture has also seen a massive overhaul to support seriously extending the project into something that is not only maintainable, but also can accomodate external collaborators and expansion. The project is now split into 6 separate crates, each problem has a crate dedicated to it, while reductions and solvers share their respective crates. The project has a common crate which then provides the common interfaces and finally a CLI crate that contains a binary that an end-user can run the solver on `.cnf` files.
+The crate (this is the term for Rust packages/libraries) stucture has also seen a massive overhaul to support seriously extending the project into something that is not only maintainable, but also can accomodate external collaborators and expansion. The project is now split into 6 separate crates, each problem has a crate dedicated to it, while reductions and solvers share their respective crates. The project has a common crate which then provides the common interfaces and finally a CLI crate that contains a binary that an end-user can use to run the solver on `.cnf` files.
 
 = Evaluation
 
@@ -202,17 +221,23 @@ DATA MISSING
 
 = Reflections
 
-== Timeframes and Goals
+== Timeframes, Goals, & Project Management
 
-TODO
+The projects timeframes were ambitious for the scope of implementation required. This project implements multiple papers worth of reductions and solvers, with each of them implemented from scratch. Coding the basis for this work was a large undertaking in and of itself, but a large amount of my time went into building an understanding of the QUBO problem and the Ising model and the mathematics to understand how to correctly implement the solvers and reductions.
 
 == Difficulties Encountered & Unimplemented Features
 
-=== GPU programming & GPU Parallel MOPSO
+Over the course of the project there were some features that could not be implemented, either due to time or difficulty.
+
+=== GPU Support
 
 GPU programming is still in its infancy in Rust, however, I managed to develop an initial solution with C FFI to bind some CUDA code to my code. The CUDA code however did not perform nearly as well as the paper I was reprodicing with similar hardware. After failing to get more information on the GPU code, I contacted the paper authors, however they were not able to provide the source for my use.
 
 The current code has a solution for binding GPU C++ code using SYCL, however there was not enough time after implementing that for GPU Parallel MOPSO, thusly it was not implemented/evaluated for this paper.
+
+=== Simulated Quantum Annealing
+
+Thos project initially had Simulated Quantum Annealing@volpe_integration_2023 as part if its suite of solvers, however it was not implemented due to the incredible complexity of the quantum simulator. In future I would like to see support for a quantum simulator, but it ended up as too ambitious.
 
 === CLI
 
@@ -228,7 +253,7 @@ The project is adequately laid out for supporting future development and especia
 
 Potentially, using PyO3 for Rust, this project could be extended to provide APIs for python, providing a fast solver platform for a wider audience of researchers and students to implement their own solvers. Providing a toolkit to build hard optimisation problem solvers and reducers is also what I believe is the largest contribution of this project. The code is released under the LGPL license and available on #link("github", "https://github.com/dthelegend/diss") and will be renamed "optimise-rs".
 
-= Summary
+= Conclusion
 
 Key potential future directions are better documenting the exposed APIs, implementing a more expansive set of solver algorithms, providing Python bindings via PyO3, and positioning QuboSAT as a generalized toolkit for developing solvers for hard optimization problems across domains, including quantum computing applications that could leverage the QUBO reductions.
 

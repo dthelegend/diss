@@ -107,6 +107,14 @@
   ]
 }
 
+#let namer(
+  name
+) = {
+  let name_split = name.split()
+
+  name_split.at(0).at(0) + [. ] + name_split.slice(1).join(" ")
+}
+
 // This function gets your whole document as its `body` and formats
 #let acmart(
   // The paper's title.
@@ -185,8 +193,14 @@
   // US letter: 8½″ × 11″ (216 mm × 279 mm)
   // A4: 210 mm × 297 mm (8.3″ × 11.7″)
   set page(
-    paper: "us-letter",
+    paper: "a4",
     margin: (x: (8.5 - 7) / 2 * 1in, y: (11 - 9) / 2 * 1in),
+    header: context if here().page() > 1 {
+      // align(left, conference info)
+      if authors.len() > 0 {
+        align(right, [#namer(authors.at(0).name) et al.])
+      }
+    }
   )
 
   // Configure equation numbering and spacing.
@@ -276,46 +290,47 @@
   show par: set block(spacing: spacing)
 
   // copyright footer
-  set footnote.entry(separator: line(length: 100%, stroke: 0.5pt))
+  set footnote.entry(separator: none)
   place(bottom + end, float: true, clearance: 0em, {
     footnote(numbering: (loc) => " ", par(first-line-indent: 0em, [
       #v(-spacing)
       #copyright-permission(mode: copyright.mode)
       
-      _ #conference.short, #conference.date, #conference.year, #conference.venue. _
+      #if conference != none {[
+      _ #conference.short, #conference.date, #conference.year, #conference.venue. _]}
       
-      #sym.copyright #conference.year #copyright-owner(mode: copyright.mode)
+      #sym.copyright #if conference != none { conference.year } #copyright-owner(mode: copyright.mode)
       
-      ACM ISBN #copyright.isbn...#copyright.price
-      
-      #copyright.doi
+      #if "isbn" in copyright {
+        [ACM ISBN #copyright.isbn]
+      }
+      #if "price" in copyright {
+        copyright.price
+      }
+      #if "doi" in copyright {
+        copyright.doi
+      }
     ]))
     v(-spacing)
   })
-  set footnote.entry(separator: line(length: 30%, stroke: 0.5pt))
+  set footnote.entry(separator: line(length: 70%, stroke: 0.5pt))
   
   if abstract != none [
     #heading(numbering: none, level: 1, [
-      Abstract
+      ABSTRACT
     ])
     #abstract
   ]
   // ccs
   [
-    #set par(first-line-indent: 0em)
-    #v(spacing)
-    *
-    _CCS Concepts:_ 
+    #heading(numbering: none, level:1, [CCS CONCEPTS])
     #ccs-concepts.map(concept => 
       [ #sym.bullet #concept.generic #sym.arrow.r #concept.specific.join("; ")]
-    ).join("; ").
-    *
+    ).join(" ").
   ]
   // keywords
   [
-    #set par(first-line-indent: 0em)
-    #v(spacing)
-    *_Keywords:_* 
+    #heading(numbering: none, level:1, [KEYWORDS])
     #keywords.join(", ")
   ]
   // reference
@@ -325,12 +340,17 @@
     #v(spacing)
     *ACM Reference Format:*
     
-    #anon(authors.map(author => if authors.last() == author { "and " } else { } + author.name).join(", ") + [.])
+    #anon(authors.map(author => if authors.last() == author and authors.len() > 1 { "and " } else { } + author.name).join(", ") + [.])
+    #title.
+    #if conference != none {[
     #conference.year
     #title.
     In _ #conference.name (#conference.short), #conference.date, #conference.year, #conference.venue. _
     ACM, New York, NY, USA, #counter(page).display() pages.
-    #copyright.doi
+    #if "doi" in copyright{
+      copyright.doi
+    }
+    ]}
   ]
 
   // Display the paper's contents.
@@ -339,6 +359,6 @@
   // Display bibliography.
   if bibliography-file != none {
     show bibliography: set text(8pt)
-    bibliography(bibliography-file, title: text(11pt)[References], style: "association-for-computing-machinery")
+    bibliography(bibliography-file, title: text(11pt)[REFERENCES], style: "association-for-computing-machinery")
   }
 }

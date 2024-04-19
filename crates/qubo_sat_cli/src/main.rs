@@ -1,6 +1,7 @@
-use clap::Parser;
-use common::{Reduction, Solver};
+use clap::{self, Parser, ValueEnum};
+use common::{Reduction, data_recorder::DataRecorder, Solver};
 use log::{debug, error, info, set_max_level, trace, LevelFilter};
+use qubo_problem::{QuboProblem, QuboSolution, solver::QuboSolver};
 use qubo_solvers::{ExhaustiveSearch, MomentumAnnealer, ParallelExhaustiveSearch, SimulatedAnnealer};
 use sat_problem::{KSatProblem, SatSolution};
 use sat_to_qubo_reducers::chancellor::Chancellor;
@@ -16,6 +17,35 @@ use std::{
 use common::data_recorder::CsvDataRecorder;
 use sat_to_qubo_reducers::choi::Choi;
 
+#[derive(ValueEnum, Debug, Clone)]
+#[clap(rename_all = "kebab_case")]
+enum Solvers {
+    SimulatedAnnealing,
+    ExhaustiveSearch,
+    ParallelExhaustiveSearch,
+    MomentumAnnealing
+}
+
+#[derive(ValueEnum, Debug, Clone)]
+#[clap(rename_all = "kebab_case")]
+enum Reducers {
+    Chancellor,
+    Choi,
+    Nusslein,
+    Nusslein23
+}
+
+impl Solver<QuboProblem> for Solvers {
+    fn solve(&mut self, qubo_problem: &QuboProblem, mut logger: Option<impl DataRecorder>) -> QuboSolution {
+        match self {
+            Self::SimulatedAnnealing => SimulatedAnnealer::new_with_thread_rng(1_000).solve(qubo_problem, logger),
+            Self::ExhaustiveSearch => ExhaustiveSearch::new().solve(qubo_problem, logger),
+            Self::ParallelExhaustiveSearch => ParallelExhaustiveSearch::new(3).solve(qubo_problem, logger),
+            Self::MomentumAnnealing => MomentumAnnealer::new(1_000).solve(qubo_problem, logger)
+        }
+    }
+}
+
 #[derive(Parser)]
 struct SolverCli {
     /// Do not log anything; Overrides verbose
@@ -24,12 +54,18 @@ struct SolverCli {
     // The file to log solver steps to in csv format
     #[arg(short = 'l', long = "log")]
     log_file: Option<PathBuf>,
-    /// The file to read. If not provided it defaults to STDIN
+    /// A standard DIMACS CNF file to read. If not provided it will attempt to read a CNF file from the STDIN
     #[arg()]
     file: Option<PathBuf>,
-    /// Logs more information
+    /// Logs more information about the program. Repeat to increase verbosity
     #[arg(short='v', long="verbose", action = clap::ArgAction::Count)]
     verbose: u8,
+    // The reducer to use (Not Functional)
+    #[arg(value_enum, long="reducer", default_value_t=Reducers::Chancellor)]
+    reducer: Reducers,
+    // The solver to use
+    #[arg(value_enum, long="solver", default_value_t=Solvers::ParallelExhaustiveSearch)]
+    solver: Solvers
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -76,20 +112,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (qubo_problem, up_modeller) = {
         // Chancellor::reduce(&problem)
-        Choi::reduce(&problem)
+        // Choi::reduce(&problem)
         // Nusslein::reduce(&problem)
-        // Nusslein23::reduce(&problem)
+        Nusslein23::reduce(&problem)
     };
 
     debug!("Reduced problem size is {}", qubo_problem.get_size());
     trace!("Reduced problem produced {:?}", qubo_problem);
 
     let mut solver = {
-        // TODO Allow this to be set by CLI arg
-        // SimulatedAnnealer::new_with_thread_rng(1_000)
-        ExhaustiveSearch::new()
-        // ParallelExhaustiveSearch::new(22)
-        // MomentumAnnealer::new(1_000)
+        args.solver
     };
 
     let qubo_solution = solver.solve(&qubo_problem, logger);

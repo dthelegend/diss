@@ -100,6 +100,8 @@ This is implemented as a reference algorithm to show how a simple optimisation a
 === *Parallel Exhaustive Search* @tao_work-time_2020
 This algorithm is implemented both sequentially and in parallel and provides a Work-time optimal way to search the entire QUBO space. The complexity of this is $O(2^n / p +n^2)$.
 
+The algorithm has been slightly modified to also maximise $sum x_i$.
+
 === *Momentum Annealing* @okuyama_binary_2019
 Momentum annealing is similar to simulated annealing as a markov chain process, but unlike simulated annealing, momentum annealing uses a second-order markov chain that uses a bipartite representation of the ising model that then gradually stabilises both sides of the graph to the lowest energy.
 
@@ -212,12 +214,61 @@ The crate (this is the term for Rust packages/libraries) stucture has also seen 
 == Methodology
 
 The solver will be evaluted using the #link("https://satcompetition.github.io/2023/downloads.html")[SAT Competition 2023 Parallel Track benchmarks]. This provides a set of comprehensive benchmarks over both real and theoretical problems, and a standard point of comparison with a swathe of modern parallel SAT solvers. The main metric that will be measured for the solvers is time to solve. The time for the reduction is not taken into account as the reduction is by far the fastest operation in the solver pipeline and as polynomial time operations, they are not major contributors to the overall running time of the program.
+#footnote("This is not included in this version of the document. The data and the ability to recreate it was lost on a previous laptop.")
 
-The main way that we will analyse our reductions is using fitness distance correlation coefficient@fdcc with the hamming distance from the global optimum (or the first global optimum with the most true variables). This is a common benchmark for search landscape analysis for evaluating fitness functions, but serves an identical role here with the fitness function being the evaluation function of the QUBO matrix. This allows for the objective measurement of how well each of the reductions performed with our solvers. The growth characteristics of each of the reduction's are already well understood and can be read in more depth in their respective papers.
+The main way that we will analyse our reductions is using fitness distance correlation coefficient@fdcc with the hamming distance from the global optimum (or the first global optimum with the most true variables). This is a common benchmark for search landscape analysis for evaluating fitness functions, but serves an identical role here with the fitness function being the evaluation function of the QUBO matrix. This allows for the objective measurement of how well each of the reductions performed with our solvers.
 
 == Results
 
-DATA MISSING
+Below are the results of my investigation. All graphs unless specified were calculated from a random SAT instance generated with `generate_cnf.py` with the parameters set to produce an instance with 10 variables and 10 clauses with seed 57.
+
+=== Exhastive Search, Quantum Annealing, and Understanding Problem Scaling
+
+This project implements both parallel and sequential exhaustive search methods. These methods take the same amount of time across reductions, scaling in time exponentially with the size if the reduced problem.
+
+#figure(image("./solution_growth.png"), caption: [The growth rate of Choi compared to the Chancellor and Nusslein reductions]) <solution-growth>
+
+@solution-growth shows in 3 dimensions how Choi scales compared to Chancellor and Nusslein, highlighting how choi scales well with the number of variables. However, most problems generally have a higher number if clauses than variables $n >> m$, and thus chancellor and nusslein provide better scaling performance for real workloads.
+
+=== Solution Space Shape Analysis
+
+The energies are shown here ordered by gray code. One can observe that these reductions produce distinct quantized energy bands (Choi also displays this behaviour, but the search space was too large to generate a graph).
+
+#figure(image("./chancellor_solspace.png"), caption: [The energy over the solution space for the Chancellor reduction]) <chan-sol>
+
+#figure(image("./nuss_solspace.png"), caption: [The energy over the solution space for the Nusslein reduction]) <nuss-sol>
+
+#figure(image("./nuss23.png"), caption: [The energy over the solution space for the Nusslein23 reduction]) <nuss23-sol>
+
+Nusslein23 in @nuss23-sol has a much larger number of solutions with optimal energies, but it must be noted that only the solution with the maximum number of true bits is the optimum.
+
+The solution space for chancellor shows much thicker banding when compared to the other reductions. This is a manifestation of how chancellor handles false clauses compared to either nusslein implementation.
+
+=== FDCC Analysis
+
+The FDCC analysis for each of the shows an almost normal distribution.
+
+#figure(image("./chan_fdcc.png"), caption: [The Fitness-Distance graph for the Chancellor reduction]) <chan-fdcc>
+
+#figure(image("./nuss_fdcc.png"), caption: [The Fitness-Distance graph for the Nusslein reduction]) <nuss-fdcc>
+
+#figure(image("./nuss23_fdcc.png"), caption: [The Gitness-Distance graph for the Nusslein23 reduction]) <nuss23-fdcc>
+
+The coefficients for each of these reductions indicates that even though Nusslein shows the best correlation coefficient, none if these reductions have a strong relationship, highlighting the difficulty if these problems.
+
+=== Optimisation performance
+
+Below is an example performance graph with for momentum annealing and simulated annealing. One thing of note is the poor relative performance of the momentum annealer when compared to the simulated annealer, commonly getting trapped in local optima (e.g. @choi-opt) or stuck in cycles between local optima(e.g. @nuss23-opt), showing either it is unfit for solving these style of QUBO problems, or more likely better tuning is required for the temperature function.
+
+#figure(image("./chancellor_opt.png"), caption: [The energy over time for both optimisation solvers for the Chancellor reduction]) <chancellor-opt>
+
+#figure(image("./choi_opt.png"), caption: [The energy over time for both optimisation solvers for the Choi reduction]) <choi-opt>
+
+#figure(image("./nuss_opt.png"), caption: [The energy over time for both optimisation solvers for the Nusslein reduction]) <nuss-opt>
+
+#figure(image("./nuss23_opt.png"), caption: [The energy over time for both optimisation solvers for the Nusslein23 reduction]) <nuss23-opt>
+
+The simulated annealer seems to always converge around 500 iterations, likely showing that solver performance is more heavily dictated by temperature for the simulated annealer rather than by problem size, although its shown by the larger Choi reduction in @choi-opt that the smoothness of this curve is affected by the size of the problem. You can also observe the distinct energy bands from earlier.
 
 = Reflections
 
@@ -237,11 +288,15 @@ The current code has a solution for binding GPU C++ code using SYCL, however the
 
 === Simulated Quantum Annealing
 
-Thos project initially had Simulated Quantum Annealing@volpe_integration_2023 as part if its suite of solvers, however it was not implemented due to the incredible complexity of the quantum simulator. In future I would like to see support for a quantum simulator, but it ended up as too ambitious.
+This project initially had Simulated Quantum Annealing@volpe_integration_2023 as part if its suite of solvers, however it was not implemented due to the incredible complexity of the quantum simulator. In future I would like to see support for a quantum simulator, but it ended up as too ambitious.
+
+=== Search Space Pruning & Dynamic sub-problem identification
+
+Currently search spaces are not pruned for empty variables, whether at the SAT or QUBO stage, leading to problems sometimes being larger than they should be where there are variables that are trivially always true or trivially false
 
 === CLI
 
-The command line interface of the program is sufficient for testing and collecting data, but there are some smaller convenience features that were never integrated, namely Backend Selection, Reduction Selection, and convenience methods for verifying problems.
+The command line interface of the program is sufficient for testing and collecting data, but there are some smaller convenience features that were never integrated, namely Reduction Selection which requires reductions to be manually edited in code, and convenience methods for verifying problems.
 
 === Logging
 
@@ -252,6 +307,8 @@ Although logging is supported, I am not very happy with the implementation of lo
 The project is adequately laid out for supporting future development and especially 3rd party libraries and integrations for adding new problems, reductions, and solvers, and integrating it into modern applications. In future I would like to better document the APIs that are exposed and produce a more expansive set of solvers. Due to the underlying flexibility if tge code, I can see this becoming the basis of a new library of reductions and solvers for the Rust programming language.
 
 Potentially, using PyO3 for Rust, this project could be extended to provide APIs for python, providing a fast solver platform for a wider audience of researchers and students to implement their own solvers. Providing a toolkit to build hard optimisation problem solvers and reducers is also what I believe is the largest contribution of this project. The code is released under the LGPL license and available on #link("github", "https://github.com/dthelegend/diss") and will be renamed "optimise-rs".
+
+I do still intend to submit a future version of this solver/framework to the #link("SAT Competition 2024", "https://satcompetition.github.io/2024/") although with substantial changes for optimisation and with many of the featres highlighted as missing implemented.
 
 = Conclusion
 

@@ -1,0 +1,15 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "optimizers_cli"
+version = "0.1.0"
+edition = "2024"
+authors = ["Daudi Wampamba <me@daudi.dev>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+log = "0.4.21"
+simple_logger = "4.3.3"
+optimize-rs = { path = "..", default-features = false, features = ["qubo", "sat", "sycl"] }

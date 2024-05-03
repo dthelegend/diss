@@ -1,6 +1,7 @@
 # Optimize-rs: An extensible framework for solving optimization problems
 
-Otimize-rs is a framework for building solvers for optimisation problems, including a set of reference implementations of solvers and reductions.
+Otimize-rs is a framework for building solvers for optimisation problems, including a set of reference implementations
+of solvers and reductions.
 
 ## Setup
 

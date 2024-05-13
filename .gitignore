@@ -6,3 +6,4 @@
 /logs
 /libsycl_solvers/.idea
 /libsycl_solvers/cmake-build-debug/**/*
+/benchmarks

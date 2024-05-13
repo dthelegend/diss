@@ -10,6 +10,6 @@ authors = ["Daudi Wampamba <me@daudi.dev>"]
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
-log = "0.4.21"
-simple_logger = "4.3.3"
-optimize-rs = { path = "..", default-features = false, features = ["qubo", "sat", "sycl"] }
+log = { version = "0.4.21", features = ["kv"] }
+optimize-rs = { path = "..", default-features = false, features = ["qubo", "sat"] }
+structured-logger = "1.0.3"

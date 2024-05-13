@@ -9,5 +9,4 @@ mod momentum;
 mod pes;
 mod sa;
 
-#[cfg(feature = "sycl")]
 mod mopso;

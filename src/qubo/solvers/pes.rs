@@ -1,4 +1,5 @@
-use std::usize;
+use std::num::NonZeroUsize;
+use std::thread::available_parallelism;
 
 use log::{debug, log_enabled, warn};
 use log::Level::Warn;
@@ -10,12 +11,12 @@ use crate::qubo::{QuboProblem, QuboSolution, QuboType};
 use crate::qubo::solvers::es::{calculate_deltas_i, exhaustive_search_helper};
 
 pub struct ParallelExhaustiveSearch {
-    beta: usize,
+    beta: NonZeroUsize,
 }
 
 
 impl ParallelExhaustiveSearch {
-    pub fn new(beta: usize) -> Self {
+    pub fn new(beta: NonZeroUsize) -> Self {
         Self { beta }
     }
 }
@@ -55,13 +56,7 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
         const BIGGEST_REASONABLE_SEARCH_SIZE: usize = 32;
 
         if log_enabled!(Warn)
-            && qubo_problem.get_size()
-            > BIGGEST_REASONABLE_SEARCH_SIZE
-            * (usize::BITS
-            - std::thread::available_parallelism()
-            .unwrap()
-            .get()
-            .leading_zeros()) as usize
+            && qubo_problem.get_size() > BIGGEST_REASONABLE_SEARCH_SIZE * available_parallelism().unwrap().get()
         {
             warn!("Exhaustive Searches greater than {BIGGEST_REASONABLE_SEARCH_SIZE} can take extremely long amounts of time! (This algorithm runs in exponential time, but it is provably optimal!)")
         }
@@ -73,7 +68,7 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
 
         let mut solution_list = vec![(start_solution, delta_j_precalcs, 0)];
 
-        let sub_tree_size = qubo_problem.get_size() + 1 - self.beta;
+        let sub_tree_size = qubo_problem.get_size() + 1 - self.beta.get();
         solution_list = generate_prefixes(
             qubo_problem,
             solution_list,
@@ -93,7 +88,7 @@ impl Solver<QuboProblem> for ParallelExhaustiveSearch {
                 exhaustive_search_helper(qubo_problem, solution, deltas, eval, sub_tree_size)
             })
             .min_by_key(|(QuboSolution(solution), eval)| (*eval, -solution.sum()))
-            .unwrap();
+            .expect("Solution list cannot be empty");
 
         debug!(
             "Produced a provably optimal min evaluation {} with solution: {}",

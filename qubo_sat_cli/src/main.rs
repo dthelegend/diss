@@ -5,6 +5,7 @@ use std::{
 };
 use std::error::Error;
 use std::io::Read;
+use std::num::{NonZero, NonZeroUsize};
 
 use clap::{self, Parser, ValueEnum};
 use log::{debug, error, info, LevelFilter, set_max_level, trace};
@@ -31,9 +32,9 @@ enum SolverOptions {
 impl Solver<QuboProblem> for SolverOptions {
     fn solve(&mut self, qubo_problem: &QuboProblem) -> QuboSolution {
         match self {
-            Self::SimulatedAnnealing => SimulatedAnnealer::new_with_thread_rng(1_000).solve(qubo_problem),
+            Self::SimulatedAnnealing => SimulatedAnnealer::new(NonZero::new(1_000).unwrap(), std::thread::available_parallelism().unwrap()).solve(qubo_problem),
             Self::ExhaustiveSearch => ExhaustiveSearch::new().solve(qubo_problem),
-            Self::ParallelExhaustiveSearch => ParallelExhaustiveSearch::new(3).solve(qubo_problem),
+            Self::ParallelExhaustiveSearch => ParallelExhaustiveSearch::new(NonZeroUsize::new((usize::BITS as usize) - std::thread::available_parallelism().unwrap().get()).unwrap()).solve(qubo_problem),
             Self::MomentumAnnealing => MomentumAnnealer::new(1_000).solve(qubo_problem),
             Self::Mopso => Mopso::new().solve(qubo_problem)
         }
@@ -127,8 +128,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => LevelFilter::Trace,
         }
     };
-
-    simple_logger::SimpleLogger::new().init()?;
+    
+    
+    
     set_max_level(verbosity);
 
     info!("Current Verbosity is {}", verbosity);

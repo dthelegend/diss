@@ -5,3 +5,5 @@ pub mod qubo;
 pub mod sat;
 
 pub mod core;
+pub mod logging;
+pub(crate) mod utils;

@@ -1,10 +1,6 @@
 use crate::core::Solver;
 use crate::qubo::{QuboProblem, QuboSolution};
 
-extern "C" {
-    fn run_mopso_solver();
-}
-
 pub struct Mopso;
 
 impl Mopso {
@@ -14,11 +10,7 @@ impl Mopso {
 }
 
 impl Solver<QuboProblem> for Mopso {
-    fn solve(&mut self, problem: &QuboProblem) -> QuboSolution {
-        unsafe {
-            run_mopso_solver();
-        }
-
+    fn solve(&mut self, _problem: &QuboProblem) -> QuboSolution {
         unimplemented!()
     }
 }

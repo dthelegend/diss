@@ -3,15 +3,10 @@ use nalgebra::DVector;
 use crate::core::Reduction;
 use crate::qubo::{QuboProblem, QuboSolution, QuboType};
 use crate::sat::{KSatProblem, SatSolution, SatVariable};
+use crate::utils;
 
 pub struct Nusslein {
     nb_vars: usize,
-}
-
-// fast ciel(log2(x + 1))
-#[inline(always)]
-fn fast_ceil_log2(x: usize) -> u32 {
-    usize::BITS - x.leading_zeros()
 }
 
 fn implement_clause(
@@ -157,7 +152,7 @@ fn implement_clause(
         }
         // Formula 6
         ref clause => {
-            let h = fast_ceil_log2(clause.len());
+            let h = utils::fast_ceil_log2(clause.len());
 
             // Create H auxiliary variables
             let mut new_clause = Vec::with_capacity(h as usize);

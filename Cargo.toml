@@ -21,7 +21,7 @@ name = "optimizers"
 [features]
 sat = []
 qubo = []
-sycl = []
+gpu = []
 
 [dependencies]
 thiserror = "1.0.59"
@@ -32,9 +32,6 @@ rand = { version = "0.8.5" }
 rand_distr = "0.4.3"
 log = "0.4.21"
 rayon = "1.10.0"
-
-[build-dependencies]
-cmake = "0.1.50"
 
 [workspace]
 members = [
